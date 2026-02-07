@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2c3e50">
+    <title>企業報價單系統</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 行業選擇介面 -->
+    <div id="industry-selection" class="overlay">
+        <div class="selection-container">
+            <h2>選擇您的行業</h2>
+            <div class="industry-grid">
+                <button class="industry-btn" data-industry="engineering">
+                    <i class="fas fa-hard-hat"></i>
+                    <span>工程</span>
+                </button>
+                <button class="industry-btn" data-industry="catering">
+                    <i class="fas fa-utensils"></i>
+                    <span>餐飲</span>
+                </button>
+                <button class="industry-btn" data-industry="beauty">
+                    <i class="fas fa-spa"></i>
+                    <span>美業</span>
+                </button>
+                <button class="industry-btn" data-industry="marketing">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>行銷</span>
+                </button>
+                <button class="industry-btn" data-industry="sales">
+                    <i class="fas fa-handshake"></i>
+                    <span>業務</span>
+                </button>
+                <button class="industry-btn" data-industry="financial">
+                    <i class="fas fa-chart-line"></i>
+                    <span>理專</span>
+                </button>
+                <button class="industry-btn" data-industry="custom">
+                    <i class="fas fa-edit"></i>
+                    <span>自訂</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主報價單介面 -->
+    <div id="quotation-app" class="hidden">
+        <header class="header">
+            <h1><i class="fas fa-file-invoice-dollar"></i> 企業報價單系統</h1>
+            <div class="sub-title">跨行業適用 • 可編輯 • 支援匯出</div>
+        </header>
+
+        <div class="container">
+            <!-- 公司資訊區塊 -->
+            <div class="card">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label for="companyName">公司名稱</label>
+                        <input type="text" id="companyName" placeholder="請輸入公司名稱">
+                    </div>
+                    <div class="info-item">
+                        <label for="staffName">承辦人員</label>
+                        <input type="text" id="staffName" placeholder="請輸入承辦人員">
+                    </div>
+                    <div class="info-item">
+                        <label for="contactPhone">聯絡電話</label>
+                        <input type="text" id="contactPhone" placeholder="請輸入聯絡電話">
+                    </div>
+                    <div class="info-item">
+                        <label for="quoteDate">報價日期</label>
+                        <input type="date" id="quoteDate">
+                    </div>
+                    
+                    <div class="info-item">
+                        <label for="clientName">客戶姓名</label>
+                        <input type="text" id="clientName" placeholder="請輸入客戶姓名">
+                    </div>
+                    <div class="info-item">
+                        <label for="clientPhone">客戶電話</label>
+                        <input type="text" id="clientPhone" placeholder="請輸入客戶電話">
+                    </div>
+                    <div class="info-item" style="grid-column: span 2;">
+                        <label for="projectAddress">客戶地址</label>
+                        <input type="text" id="projectAddress" placeholder="請輸入客戶地址">
+                    </div>
+                    
+                    <div class="info-item">
+                        <label for="taxType">稅額計算</label>
+                        <select id="taxType">
+                            <option value="included">含稅</option>
+                            <option value="excluded">未稅</option>
+                        </select>
+                    </div>
+                    <div class="info-item">
+                        <label for="taxRate">稅率 (%)</label>
+                        <input type="number" id="taxRate" value="5" min="0" max="100" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="addCategoryBtn">
+                        <i class="fas fa-plus-circle"></i> 新增類別
+                    </button>
+                    <button class="btn btn-secondary" id="importBtn">
+                        <i class="fas fa-file-import"></i> 匯入Excel
+                    </button>
+                    <button class="btn btn-secondary" id="exportBtn">
+                        <i class="fas fa-file-export"></i> 匯出Excel
+                    </button>
+                    <button class="btn btn-danger" id="resetBtn">
+                        <i class="fas fa-trash-alt"></i> 清空報價單
+                    </button>
+                </div>
+            </div>
+
+            <!-- 圖表分析區塊 -->
+            <div class="card chart-section">
+                <h3>預算佔比分析</h3>
+                <div class="chart-container">
+                    <canvas id="budgetChart"></canvas>
+                </div>
+                <div class="chart-legend" id="chartLegend"></div>
+            </div>
+
+            <!-- 類別項目區塊 -->
+            <div class="form-group">
+                <input type="text" id="sectionTitle" class="form-control" value="報價項目明細">
+            </div>
+            
+            <div id="categoriesContainer"></div>
+
+            <!-- 總計區塊 -->
+            <div class="total-section">
+                <div class="total-row">
+                    <span>小計 (未稅)</span>
+                    <span id="subtotal">$0</span>
+                </div>
+                <div class="total-row">
+                    <span>稅額 (<span id="taxRateDisplay">5</span>%)</span>
+                    <span id="taxAmount">$0</span>
+                </div>
+                <div class="total-final">
+                    <span>總報價金額</span>
+                    <span id="totalAmount">$0</span>
+                </div>
+            </div>
+
+            <!-- 注意事項 -->
+            <div class="footer">
+                注意事項：本報價單有效期限為一個月。<br>
+                付款方式：簽約30%、中期40%、尾款30%。
+            </div>
+        </div>
+
+        <!-- 浮動操作按鈕 -->
+        <div class="fab-bar">
+            <div>
+                <div>總額(含稅)</div>
+                <div id="totalDisplay">$0</div>
+            </div>
+            <div class="fab-buttons">
+                <button class="fab-btn secondary" id="exportHtmlBtn">
+                    <i class="fas fa-file-export"></i> 輸出HTML
+                </button>
+                <button class="fab-btn" id="saveBtn">
+                    <i class="fas fa-save"></i> 儲存報價單
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增類別彈窗 -->
+    <div id="categoryModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新增類別</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="categoryName">類別名稱</label>
+                    <input type="text" id="categoryName" class="form-control" placeholder="例如：設計費用">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelCategoryBtn">取消</button>
+                <button class="btn btn-primary" id="saveCategoryBtn">新增</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增項目彈窗 -->
+    <div id="itemModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新增項目</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="itemName">項目名稱</label>
+                    <input type="text" id="itemName" class="form-control" placeholder="例如：網站設計">
+                </div>
+                <div class="form-group">
+                    <label for="itemQuantity">數量</label>
+                    <input type="number" id="itemQuantity" class="form-control" value="1">
+                </div>
+                <div class="form-group">
+                    <label for="itemUnit">單位</label>
+                    <div class="unit-controls">
+                        <select id="itemUnit" class="form-control">
+                            <option value="式">式</option>
+                            <option value="組">組</option>
+                            <option value="件">件</option>
+                            <option value="小時">小時</option>
+                            <option value="天">天</option>
+                            <option value="月">月</option>
+                        </select>
+                        <input type="text" id="newUnit" class="form-control" placeholder="新增單位">
+                        <button type="button" class="btn btn-secondary" id="addUnitBtn">新增</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="itemPrice">單價</label>
+                    <input type="number" id="itemPrice" class="form-control" placeholder="例如：5000">
+                </div>
+                <div class="form-group">
+                    <label for="itemRemark">備註</label>
+                    <textarea id="itemRemark" class="form-control" placeholder="例如：含稅"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelItemBtn">取消</button>
+                <button class="btn btn-primary" id="saveItemBtn">新增</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/industry-templates.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/pwa.js"></script>
+</body>
+</html>
