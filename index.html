@@ -8,12 +8,31 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <!-- 行業選擇介面 -->
     <div id="industry-selection" class="overlay">
         <div class="selection-container">
             <h2>選擇您的行業</h2>
+            <div class="industry-grid">
+                <div class="company-info-section">
+                <h3>請輸入基本資訊</h3>
+                <div class="info-item">
+                    <label for="selectionCompanyName">公司名稱 *</label>
+                    <input type="text" id="selectionCompanyName" placeholder="請輸入公司名稱" required>
+                </div>
+                <div class="info-item">
+                    <label for="selectionStaffName">承辦人員 *</label>
+                    <input type="text" id="selectionStaffName" placeholder="請輸入承辦人員姓名" required>
+                </div>
+                <div class="info-item">
+                    <label for="selectionContactPhone">聯絡電話 *</label>
+                    <input type="text" id="selectionContactPhone" placeholder="請輸入聯絡電話" required>
+                </div>
+            </div>
+        <div class="industry-selection-section">
+            <h3>選擇行業</h3>
             <div class="industry-grid">
                 <button class="industry-btn" data-industry="engineering">
                     <i class="fas fa-hard-hat"></i>
@@ -41,12 +60,13 @@
                 </button>
                 <button class="industry-btn" data-industry="custom">
                     <i class="fas fa-edit"></i>
-                    <span>自訂</span>
-                </button>
+                        <span>自訂</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-
+</div>
     <!-- 主報價單介面 -->
     <div id="quotation-app" class="hidden">
         <header class="header">
@@ -151,8 +171,10 @@
 
             <!-- 注意事項 -->
             <div class="footer">
-                注意事項：本報價單有效期限為一個月。<br>
-                付款方式：簽約30%、中期40%、尾款30%。
+                <label for="notesContent" style="display: block; margin-bottom: 10px; font-weight: bold;">注意事項：</label>
+                <textarea id="notesContent" class="notes-textarea" placeholder="請輸入注意事項內容...">本報價單有效期限為一個月。
+            付款方式：簽約30%、中期40%、尾款30%。</textarea>
+                <button id="saveNotesBtn" class="save-notes-btn">保存注意事項</button>
             </div>
         </div>
 
@@ -244,5 +266,6 @@
     <script src="js/industry-templates.js"></script>
     <script src="js/main.js"></script>
     <script src="js/pwa.js"></script>
+    <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" />
 </body>
 </html>
