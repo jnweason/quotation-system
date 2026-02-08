@@ -4,6 +4,7 @@ const urlsToCache = [
   '/quotation-system/index.html',
   '/quotation-system/css/style.css',
   '/quotation-system/js/main.js',
+  '/quotation-system/js/export-html.js',
   '/quotation-system/js/industry-templates.js',
   '/quotation-system/js/pwa.js',
   '/quotation-system/manifest.json'

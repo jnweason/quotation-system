@@ -3,6 +3,7 @@ class QuotationSystem {
         this.categories = [];
         this.negotiatedPrices = [];
         this.currentIndustry = null;
+        this.exportHTMLHandler = null;
         this.taxSettings = {
             type: 'included',
             rate: 5
@@ -36,6 +37,11 @@ class QuotationSystem {
         this.initCustomFields();
         this.initNegotiatedPrices();
         this.bindNegotiatedPriceEvents();
+        setTimeout(() => {
+            if (!this.exportHTMLHandler) {
+                this.exportHTMLHandler = new ExportHTML(this);
+            }
+        }, 0);
 
         
         
@@ -147,23 +153,22 @@ renderNegotiatedPrices() {
                        class="negotiated-price-label" 
                        value="${priceItem.label}" 
                        data-price-index="${index}"
-                       placeholder="議價名稱"
-                       style="font-size: 0.8rem; color: #666; width: 80px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
-                <span style="color: #999;">$</span>
+                       placeholder="議價名稱">
                 <input type="number" 
                        class="negotiated-price-input" 
                        value="${priceItem.amount}" 
                        data-price-index="${index}"
-                       placeholder="金額"
-                       style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
-                <div class="negotiated-price-display" style="min-width: 120px; text-align: right; font-size: 0.8rem; color: ${difference >= 0 ? '#e74c3c' : '#27ae60'};">
-                    差價: ${differenceText}
+                       placeholder="金額">
+                <div class="price-actions-container">
+                    <div class="negotiated-price-display" style="color: ${difference >= 0 ? '#e74c3c' : '#27ae60'};">
+                        差價: ${differenceText}
+                    </div>
+                    <button class="btn-remove-negotiated" 
+                            data-price-index="${index}" 
+                            title="刪除議價價格">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <button class="btn-remove-negotiated" 
-                        data-price-index="${index}" 
-                        style="background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem;">
-                    <i class="fas fa-times"></i>
-                </button>
             `;
             container.appendChild(priceItemElement);
         });
@@ -178,6 +183,7 @@ renderNegotiatedPrices() {
     // 更新總計顯示
     this.updateTotals();
 }
+
 
 /**
  * 只綁定一次議價價格輸入事件
@@ -861,7 +867,12 @@ removeItemImage(itemId) {
         document.getElementById('importBtn').addEventListener('click', () => this.importFromExcel());
         document.getElementById('exportBtn').addEventListener('click', () => this.exportToExcel());
         document.getElementById('resetBtn').addEventListener('click', () => this.resetQuote());
-        document.getElementById('exportHtmlBtn').addEventListener('click', () => this.exportHTML());
+        document.getElementById('exportHtmlBtn').addEventListener('click', () => {
+            if (!this.exportHTMLHandler) {
+                this.exportHTMLHandler = new ExportHTML(this);
+            }
+            this.exportHTMLHandler.exportHTML();
+        });
         document.getElementById('saveBtn').addEventListener('click', () => this.saveQuote());
 
         // 稅率設定事件
@@ -1898,15 +1909,15 @@ exportToExcel() {
         exportData.push(['稅率(%)', document.getElementById('taxRate').value || '']);
         exportData.push([]);
         
-        // 添加表頭（新增圖片欄位）
-        exportData.push(['類別', '項目名稱', '數量', '單位', '單價', '小計', '備註', '圖片']);
+        // 添加表頭（圖片欄位改為圖片狀態）
+        exportData.push(['類別', '項目名稱', '數量', '單位', '單價', '小計', '備註', '圖片狀態']);
         
         // 添加項目數據
         this.categories.forEach(category => {
             category.items.forEach(item => {
                 const subtotal = Math.ceil(item.quantity * item.price);
-                // 將圖片轉換為 base64 字串儲存
-                const imageBase64 = item.image ? item.image : '';
+                // 圖片狀態欄位顯示是否有圖片，而不是儲存完整的 base64 數據
+                const imageStatus = item.image ? '有圖片' : '無圖片';
                 exportData.push([
                     category.name,
                     item.name,
@@ -1915,7 +1926,7 @@ exportToExcel() {
                     item.price,
                     subtotal,
                     item.remark || '',
-                    imageBase64 // 新增圖片數據
+                    imageStatus // 顯示圖片狀態而非完整數據
                 ]);
             });
         });
@@ -1939,7 +1950,7 @@ exportToExcel() {
             { wch: 15 }, // 單價
             { wch: 15 }, // 小計
             { wch: 30 }, // 備註
-            { wch: 50 }  // 圖片（較寬以容納 base64 字串）
+            { wch: 15 }  // 圖片狀態
         ];
         
         // 添加樣式
@@ -1981,6 +1992,7 @@ exportToExcel() {
         alert('匯出失敗，請稍後再試\n錯誤: ' + error.message);
     }
 }
+
 
     // 添加保存注意事項方法
     saveNotes() {
@@ -2289,798 +2301,6 @@ saveToStorage() {
         // 載入頁首設定
          this.loadHeaderSettings();
     }
-// 在 main.js 中新增 exportHTML 方法
-exportHTML() {
-    // 取得當前資料
-    const companyName = document.getElementById('companyName').value || '公司名稱';
-    const staffName = document.getElementById('staffName').value || '承辦人員';
-    const contactPhone = document.getElementById('contactPhone').value || '聯絡電話';
-    const quoteDate = document.getElementById('quoteDate').value || new Date().toISOString().split('T')[0];
-    const clientName = document.getElementById('clientName').value || '';
-    const clientPhone = document.getElementById('clientPhone').value || '';
-    const projectAddress = document.getElementById('projectAddress').value || '';
-    const taxType = document.getElementById('taxType').value;
-    const taxRate = document.getElementById('taxRate').value;
-    const sectionTitle = document.getElementById('sectionTitle').value || '報價項目明細';
-    const notesContent = document.getElementById('notesContent').value || '';
-    
-    // 計算總金額
-    const subtotal = Math.ceil(this.categories.reduce((sum, category) => sum + this.calculateCategoryTotal(category), 0));
-    const tax = Math.ceil(subtotal * (taxRate / 100));
-    let total = 0;
-    if (taxType === 'included') {
-        total = Math.ceil(subtotal + tax);
-    } else {
-        total = Math.ceil(subtotal);
-    }
-
-    // 生成HTML內容
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>報價單 - ${companyName}</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --light-bg: #f8f9fa;
-            --text: #333;
-            --gray: #666;
-            --border: #e9ecef;
-            --success: #27ae60;
-            --danger: #e74c3c;
-        }
-
-        * { 
-            box-sizing: border-box; 
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", Roboto, sans-serif;
-            margin: 0; 
-            padding: 0; 
-            background-color: #f0f2f5; 
-            color: var(--text); 
-            line-height: 1.5; 
-        }
-
-        .container { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            padding: 15px; 
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary), #1a252f);
-            color: white; 
-            padding: 25px 20px; 
-            text-align: center;
-            border-bottom-left-radius: 20px; 
-            border-bottom-right-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .header h1 { 
-            margin: 0; 
-            font-size: 1.4rem; 
-            letter-spacing: 1px; 
-        }
-
-        .sub-title { 
-            font-size: 0.9rem; 
-            opacity: 0.9; 
-            margin-top: 5px; 
-        }
-
-        .card { 
-            background: white; 
-            border-radius: 12px; 
-            padding: 20px; 
-            margin-bottom: 15px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
-        }
-
-        .info-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 12px; 
-            font-size: 0.9rem; 
-        }
-
-        .info-item label { 
-            display: block; 
-            color: #95a5a6; 
-            font-size: 0.75rem; 
-            margin-bottom: 2px; 
-        }
-
-        .info-item span {
-            display: block;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            background: #f8f9fa;
-        }
-
-        .chart-section {
-            text-align: center;
-        }
-
-        .chart-section h3 {
-            margin: 0 0 15px 0;
-            font-size: 1rem;
-            color: #666;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 200px;
-            margin: 20px 0;
-        }
-
-        .chart-legend {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.8rem;
-        }
-
-        .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        details {
-            background: white; 
-            border-radius: 10px; 
-            margin-bottom: 12px;
-            overflow: hidden; 
-            transition: all 0.3s;
-            border: 1px solid transparent;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        }
-
-        details[open] { 
-            border-color: var(--accent); 
-            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1); 
-        }
-
-        summary {
-            padding: 15px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            cursor: pointer; 
-            list-style: none; 
-            user-select: none;
-            background: white; 
-            position: relative; 
-            z-index: 10;
-        }
-
-        summary::-webkit-details-marker { 
-            display: none; 
-        }
-
-        .cat-header { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-        }
-
-        .cat-icon { 
-            width: 28px; 
-            height: 28px; 
-            border-radius: 50%; 
-            background: var(--light-bg); 
-            color: var(--primary); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 14px; 
-            font-weight: bold; 
-            border: 1px solid #eee;
-        }
-
-        .cat-title { 
-            font-weight: bold; 
-            font-size: 1.05rem; 
-        }
-
-        .cat-total { 
-            color: var(--accent); 
-            font-weight: bold; 
-            font-size: 1rem; 
-        }
-
-        .item-list { 
-            background: #fafafa; 
-            border-top: 1px solid #f1f1f1; 
-            padding: 5px 15px 15px 15px; 
-        }
-
-        .detail-item {
-            background: white;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            margin-top: 10px;
-            padding: 12px;
-        }
-
-        .item-top { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: flex-start; 
-            margin-bottom: 8px; 
-        }
-
-        .item-index { 
-            background: #eee; 
-            color: #555; 
-            font-size: 0.7rem; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            margin-right: 8px; 
-            display: inline-block;
-        }
-
-        .item-name { 
-            font-weight: bold; 
-            color: var(--primary); 
-            font-size: 0.95rem; 
-            flex: 1; 
-        }
-
-        .item-subtotal { 
-            font-weight: bold; 
-            color: var(--primary); 
-            font-size: 1rem; 
-            margin-left: 10px; 
-        }
-
-        .item-specs {
-            display: flex; 
-            gap: 15px; 
-            font-size: 0.85rem; 
-            color: #555; 
-            border-bottom: 1px dashed #eee; 
-            padding-bottom: 8px; 
-            margin-bottom: 8px;
-        }
-
-        .spec-pill { 
-            background: #f8f9fa; 
-            padding: 2px 8px; 
-            border-radius: 4px; 
-            border: 1px solid #eee; 
-        }
-
-        .item-remark { 
-            font-size: 0.85rem; 
-            color: #666; 
-            background: #fff8e1; 
-            padding: 6px 10px; 
-            border-radius: 4px; 
-            line-height: 1.4; 
-        }
-
-        .remark-label { 
-            color: #e67e22; 
-            font-weight: bold; 
-            font-size: 0.75rem; 
-            margin-right: 4px; 
-        }
-
-        .item-image {
-            max-width: 100px;
-            max-height: 100px;
-            border-radius: 4px;
-            border: 1px solid #eee;
-            object-fit: cover;
-            margin-top: 10px;
-        }
-
-        .total-section { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            margin-top: 20px; 
-        }
-
-        .total-row { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-bottom: 8px; 
-            font-size: 0.9rem; 
-            color: #666; 
-        }
-
-        .total-final { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-top: 15px; 
-            padding-top: 15px; 
-            border-top: 2px solid #eee; 
-            font-size: 1.2rem; 
-            font-weight: bold; 
-            color: var(--primary); 
-        }
-
-        .signature-section {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        }
-
-        .signature-canvas {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            width: 100%;
-            height: 150px;
-            cursor: crosshair;
-            touch-action: none;
-        }
-
-        .signature-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .signature-btn {
-            padding: 10px 20px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--light-bg);
-            color: var(--text);
-            border: 1px solid #ddd;
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        .signature-preview {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .signature-preview img {
-            max-width: 300px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .footer-notes {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        }
-
-        .footer-notes h3 {
-            margin-top: 0;
-            color: var(--primary);
-        }
-
-        .notes-content {
-            white-space: pre-wrap;
-            color: #666;
-            line-height: 1.6;
-        }
-
-        @media print {
-            .signature-buttons {
-                display: none;
-            }
-            
-            body {
-                background: white;
-            }
-            
-            .card, .signature-section, .footer-notes {
-                box-shadow: none;
-                border: 1px solid #ddd;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .item-specs {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .total-final {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .chart-container {
-                height: 150px;
-            }
-            
-            .item-image {
-                max-width: 80px;
-                max-height: 80px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>企業報價單系統</h1>
-        <div class="sub-title">跨行業適用 • 客戶預覽版本</div>
-    </div>
-
-    <div class="container">
-        <div class="card">
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>公司名稱</label>
-                    <span>${companyName}</span>
-                </div>
-                <div class="info-item">
-                    <label>承辦人員</label>
-                    <span>${staffName}</span>
-                </div>
-                <div class="info-item">
-                    <label>聯絡電話</label>
-                    <span>${contactPhone}</span>
-                </div>
-                <div class="info-item">
-                    <label>報價日期</label>
-                    <span>${quoteDate}</span>
-                </div>
-                
-                <div class="info-item">
-                    <label>客戶姓名</label>
-                    <span>${clientName}</span>
-                </div>
-                <div class="info-item">
-                    <label>客戶電話</label>
-                    <span>${clientPhone}</span>
-                </div>
-                <div class="info-item" style="grid-column: span 2;">
-                    <label>客戶地址</label>
-                    <span>${projectAddress}</span>
-                </div>
-                
-                <div class="info-item">
-                    <label>稅額計算</label>
-                    <span>${taxType === 'included' ? '含稅' : '未稅'}</span>
-                </div>
-                <div class="info-item">
-                    <label>稅率 (%)</label>
-                    <span>${taxRate}%</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="card chart-section">
-            <h3>預算佔比分析</h3>
-            <div class="chart-container">
-                <canvas id="budgetChart"></canvas>
-            </div>
-            <div class="chart-legend" id="chartLegend"></div>
-        </div>
-
-        <div class="form-group">
-            <h2 style="text-align: center; color: var(--primary);">${sectionTitle}</h2>
-        </div>
-        
-        <div id="categoriesContainer">
-            ${this.categories.map((category, categoryIndex) => `
-            <details open>
-                <summary>
-                    <div class="cat-header">
-                        <span class="cat-icon">${categoryIndex + 1}</span> 
-                        <span class="cat-title">${category.name}</span>
-                    </div>
-                    <div style="display: flex; align-items: center;">
-                        <span class="cat-total">$${this.formatCurrency(this.calculateCategoryTotal(category))}</span>
-                    </div>
-                </summary>
-                <div class="item-list">
-                    ${category.items.map((item, itemIndex) => `
-                    <div class="detail-item">
-                        <div class="item-top">
-                            <div class="item-name">
-                                <span class="item-index">${itemIndex + 1}</span>${item.name}
-                            </div>
-                            <div style="display: flex; align-items: center;">
-                                <div class="item-subtotal">$${this.formatCurrency(item.quantity * item.price)}</div>
-                            </div>
-                        </div>
-                        <div class="item-specs">
-                            <span class="spec-pill">數量: ${item.quantity} ${item.unit}</span>
-                            <span class="spec-pill">單價: $${this.formatCurrency(item.price)}</span>
-                        </div>
-                        ${item.remark ? `<div class="item-remark"><span class="remark-label">備註</span>${item.remark}</div>` : ''}
-                        ${item.image ? `<div><img src="${item.image}" alt="項目圖片" class="item-image"></div>` : ''}
-                    </div>
-                    `).join('')}
-                </div>
-            </details>
-            `).join('')}
-        </div>
-
-        <div class="total-section">
-            <div class="total-row">
-                <span>小計 (未稅)</span>
-                <span>$${this.formatCurrency(subtotal)}</span>
-            </div>
-            <div class="total-row">
-                <span>稅額 (${taxRate}%)</span>
-                <span>$${this.formatCurrency(tax)}</span>
-            </div>
-            <div class="total-final">
-                <span>總報價金額</span>
-                <span>$${this.formatCurrency(total)}</span>
-            </div>
-        </div>
-
-        <div class="footer-notes">
-            <h3>注意事項：</h3>
-            <div class="notes-content">${notesContent.replace(/\n/g, '<br>')}</div>
-        </div>
-
-        <div class="signature-section">
-            <h3>客戶簽署區</h3>
-            <p>請在下方簽名確認報價內容無誤：</p>
-            <canvas id="signatureCanvas" class="signature-canvas"></canvas>
-            <div class="signature-buttons">
-                <button id="clearSignature" class="signature-btn btn-secondary">
-                    <i class="fas fa-eraser"></i> 清除簽名
-                </button>
-                <button id="confirmSignature" class="signature-btn btn-success">
-                    <i class="fas fa-check"></i> 確認簽名
-                </button>
-                <button id="printDocument" class="signature-btn btn-primary">
-                    <i class="fas fa-print"></i> 列印/存為PDF
-                </button>
-            </div>
-            <div id="signaturePreview" class="signature-preview" style="display: none;">
-                <h4>簽名預覽：</h4>
-                <img id="signatureImage" src="" alt="客戶簽名">
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // 圖表數據
-        const chartData = ${JSON.stringify(this.categories.map(category => ({
-            name: category.name,
-            total: this.calculateCategoryTotal(category),
-            color: this.getCategoryColor(category.id)
-        })))};
-        
-        // 繪製圖表
-        function renderChart() {
-            const ctx = document.getElementById('budgetChart').getContext('2d');
-            const chartLegend = document.getElementById('chartLegend');
-            
-            const total = chartData.reduce((sum, item) => sum + item.total, 0);
-            
-            if (total === 0) {
-                chartLegend.innerHTML = '<div class="legend-item"><span class="legend-color" style="background:#ccc"></span>無數據</div>';
-                return;
-            }
-            
-            const labels = chartData.map(data => data.name);
-            const data = chartData.map(data => data.total);
-            const backgroundColors = chartData.map(data => data.color);
-            
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: backgroundColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = Math.ceil(context.raw || 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return \`\${label}: $\${value.toLocaleString()} (\${percentage}%)\`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            
-            chartLegend.innerHTML = '';
-            chartData.forEach(data => {
-                const legendItem = document.createElement('div');
-                legendItem.className = 'legend-item';
-                legendItem.innerHTML = \`
-                    <span class="legend-color" style="background:\${data.color}"></span>
-                    \${data.name} \${((data.total / total) * 100).toFixed(1)}%
-                \`;
-                chartLegend.appendChild(legendItem);
-            });
-        }
-        
-        // 電子簽名功能
-        function initSignaturePad() {
-            const canvas = document.getElementById('signatureCanvas');
-            const ctx = canvas.getContext('2d');
-            
-            // 設置畫布大小
-            function resizeCanvas() {
-                const displayRatio = window.devicePixelRatio || 1;
-                const rect = canvas.getBoundingClientRect();
-                
-                canvas.width = rect.width * displayRatio;
-                canvas.height = rect.height * displayRatio;
-                ctx.scale(displayRatio, displayRatio);
-                
-                ctx.lineWidth = 2;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = '#000';
-            }
-            
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            
-            let isDrawing = false;
-            let lastX = 0;
-            let lastY = 0;
-            
-            function startDrawing(e) {
-                isDrawing = true;
-                [lastX, lastY] = getPosition(e);
-            }
-            
-            function draw(e) {
-                if (!isDrawing) return;
-                e.preventDefault();
-                
-                const [x, y] = getPosition(e);
-                
-                ctx.beginPath();
-                ctx.moveTo(lastX, lastY);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                
-                [lastX, lastY] = [x, y];
-            }
-            
-            function stopDrawing() {
-                isDrawing = false;
-            }
-            
-            function getPosition(e) {
-                let x, y;
-                if (e.type.includes('touch')) {
-                    const touch = e.touches[0] || e.changedTouches[0];
-                    const rect = canvas.getBoundingClientRect();
-                    x = touch.clientX - rect.left;
-                    y = touch.clientY - rect.top;
-                } else {
-                    x = e.offsetX;
-                    y = e.offsetY;
-                }
-                return [x, y];
-            }
-            
-            // 綁定事件
-            canvas.addEventListener('mousedown', startDrawing);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseout', stopDrawing);
-            
-            canvas.addEventListener('touchstart', startDrawing);
-            canvas.addEventListener('touchmove', draw);
-            canvas.addEventListener('touchend', stopDrawing);
-            
-            // 清除簽名
-            document.getElementById('clearSignature').addEventListener('click', function() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                document.getElementById('signaturePreview').style.display = 'none';
-            });
-            
-            // 確認簽名
-            document.getElementById('confirmSignature').addEventListener('click', function() {
-                const dataUrl = canvas.toDataURL('image/png');
-                document.getElementById('signatureImage').src = dataUrl;
-                document.getElementById('signaturePreview').style.display = 'block';
-            });
-            
-            // 列印功能
-            document.getElementById('printDocument').addEventListener('click', function() {
-                window.print();
-            });
-        }
-        
-        // 頁面加載完成後初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            renderChart();
-            initSignaturePad();
-        });
-        
-        // 如果 DOM 已經加載
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', renderChart);
-        } else {
-            renderChart();
-        }
-    </script>
-</body>
-</html>
-    `;
-
-    // 創建 Blob 物件並下載
-    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    
-    // 生成檔名
-    const filename = `${companyName}_${quoteDate}_報價單.html`;
-    
-    // 創建下載連結
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    
-    // 清理
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 100);
-}
-
-
 
 }
 

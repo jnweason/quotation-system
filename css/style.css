@@ -911,32 +911,51 @@ textarea.form-control {
 .negotiated-price-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 10px;
     padding: 10px;
     background: #f8f9fa;
     border-radius: 6px;
     border: 1px solid #e9ecef;
+    flex-wrap: wrap;
 }
 
 .negotiated-price-label {
     font-size: 0.8rem;
     color: #666;
     min-width: 80px;
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
 }
 
 .negotiated-price-input {
     flex: 1;
+    min-width: 100px;
     padding: 6px 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 0.9rem;
+    background: white;
+}
+
+/* 差額與刪除按鈕容器 */
+.price-actions-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
 }
 
 .negotiated-price-display {
-    min-width: 120px;
-    text-align: right;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: #e9ecef;
+    white-space: nowrap;
+    min-width: 100px;
+    text-align: center;
 }
 
 .btn-remove-negotiated {
@@ -944,9 +963,40 @@ textarea.form-control {
     color: white;
     border: none;
     border-radius: 4px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     cursor: pointer;
     font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 30px;
+}
+
+.btn-remove-negotiated:hover {
+    background: #c0392b;
+}
+
+/* 手機響應式設計 */
+@media (max-width: 768px) {
+    .negotiated-price-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .price-actions-container {
+        justify-content: space-between;
+    }
+    
+    .negotiated-price-display {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .negotiated-price-input {
+        min-width: auto;
+    }
 }
 /* 在 style.css 中新增以下樣式 */
 
@@ -1004,6 +1054,11 @@ textarea.form-control {
 .signature-preview {
     margin-top: 20px;
     text-align: center;
+    padding: 15px;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    background: #f8f9fa;
+    display: none; /* 預設隱藏 */
 }
 
 .signature-preview img {
@@ -1024,5 +1079,150 @@ textarea.form-control {
     .card, .signature-section, .footer-notes {
         box-shadow: none;
         border: 1px solid #ddd;
+    }
+}
+
+/* 簽名彈窗樣式 */
+.signature-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.signature-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.signature-modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 95%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.signature-modal.active .signature-modal-content {
+    transform: translateY(0);
+}
+
+.signature-modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--primary);
+    color: white;
+}
+
+.signature-modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.signature-modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.signature-modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.signature-modal-body {
+    padding: 20px;
+}
+
+.signature-canvas-container {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    background: white;
+}
+
+#signatureCanvasModal {
+    width: 100%;
+    height: 250px;
+    cursor: crosshair;
+    touch-action: none;
+    display: block;
+}
+
+.signature-modal-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.signature-modal-btn {
+    flex: 1;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 16px;
+    min-height: 44px;
+}
+
+.btn-modal-clear {
+    background: var(--light-bg);
+    color: var(--text);
+    border: 1px solid #ddd;
+}
+
+.btn-modal-confirm {
+    background: var(--success);
+    color: white;
+}
+
+.signature-instructions {
+    text-align: center;
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+    .signature-modal-content {
+        width: 98%;
+        margin: 10px;
+    }
+    
+    .signature-modal-buttons {
+        flex-direction: column;
+    }
+    
+    #signatureCanvasModal {
+        height: 200px;
     }
 }

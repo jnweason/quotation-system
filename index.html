@@ -32,8 +32,9 @@
     <link rel="manifest" href="/quotation-system/manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
+
     // 動態載入 CSS
     (function() {
         var link = document.createElement('link');
@@ -237,8 +238,8 @@
         <!-- 浮動操作按鈕 -->
         <div class="fab-bar">
             <div>
-                <div>總額(含稅)</div>
-                <div id="totalDisplay">$0</div>
+                <div>${finalDisplayText}</div>
+                <div id="totalDisplay">$${this.quotationSystem.formatCurrency(total)}</div>
             </div>
             <div class="fab-buttons">
                 <button class="fab-btn secondary" id="exportHtmlBtn">
@@ -321,6 +322,7 @@
     <!-- 在 body 底部，修改腳本引入順序和路徑 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="./js/industry-templates.js"></script>
+    <script src="./js/export-html.js"></script>
     <script src="./js/main.js"></script>
     <script src="./js/pwa.js"></script>
     <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" />
