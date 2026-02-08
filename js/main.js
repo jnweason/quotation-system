@@ -150,28 +150,38 @@ class QuotationSystem {
         const container = document.getElementById('categoriesContainer');
         container.innerHTML = '';
         
-        // 如果沒有類別，顯示新增類別按鈕
-        if (this.categories.length === 0) {
-            const emptyState = document.createElement('div');
-            emptyState.style.textAlign = 'center';
-            emptyState.style.padding = '40px 20px';
-            emptyState.style.backgroundColor = '#f8f9fa';
-            emptyState.style.borderRadius = '12px';
-            emptyState.style.marginBottom = '20px';
-            emptyState.style.border = '2px dashed #dee2e6';
-            emptyState.innerHTML = `
-                <div style="font-size: 1.2rem; color: #666; margin-bottom: 20px;">
-                    <i class="fas fa-folder-plus" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
-                    <div>目前還沒有類別項目</div>
-                </div>
-                <button class="btn btn-primary" id="addCategoryEmptyBtn" style="padding: 12px 24px; font-size: 1rem; margin: 0 auto; display: block;">
-                    <i class="fas fa-plus-circle"></i> 新增第一個類別
-                </button>
-                <div style="font-size: 0.8rem; color: #999; margin-top: 10px;">
-                    點擊上方按鈕開始建立您的報價項目
-                </div>
-            `;
-            container.appendChild(emptyState);
+    // 如果沒有類別，顯示新增類別按鈕
+    if (this.categories.length === 0) {
+        const emptyState = document.createElement('div');
+        emptyState.style.textAlign = 'center';
+        emptyState.style.padding = '40px 20px';
+        emptyState.style.backgroundColor = '#f8f9fa';
+        emptyState.style.borderRadius = '12px';
+        emptyState.style.marginBottom = '20px';
+        emptyState.style.border = '2px dashed #dee2e6';
+        emptyState.innerHTML = `
+            <div style="font-size: 1.2rem; color: #666; margin-bottom: 20px;">
+                <i class="fas fa-folder-plus" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
+                <div>目前還沒有類別項目</div>
+            </div>
+            <button class="btn btn-primary" id="addCategoryEmptyBtn">
+                <i class="fas fa-plus-circle"></i> 新增第一個類別
+            </button>
+            <div style="font-size: 0.8rem; color: #999; margin-top: 10px;">
+                點擊上方按鈕開始建立您的報價項目
+            </div>
+        `;
+
+        // 在底部按鈕部分，將按鈕 HTML 改為：
+        addCategorySection.innerHTML = `
+            <button class="btn btn-primary" id="addCategoryBottomBtn">
+                <i class="fas fa-plus-circle"></i> 新增類別
+            </button>
+            <div style="font-size: 0.8rem; color: #666; margin-top: 8px; text-align: center;">
+                點擊此處新增新的類別項目
+            </div>
+        `;
+        container.appendChild(emptyState);
             
             // 綁定事件
             setTimeout(() => {

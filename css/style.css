@@ -724,12 +724,48 @@ textarea.form-control {
     background: #2980b9;
 }
 
+    /* 底部新增類別按鈕樣式 - 置中顯示 */
+    #addCategoryBottomBtn,
+    #addCategoryEmptyBtn {
+        background: linear-gradient(135deg, var(--accent), #2980b9);
+        border: none;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        transition: all 0.3s ease;
+        margin: 0 auto !important;
+        display: block !important;
+        padding: 12px 30px;
+        font-size: 1rem;
+        border-radius: 50px;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    #addCategoryBottomBtn:hover,
+    #addCategoryEmptyBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+    }
+
+    #addCategoryBottomBtn:active,
+    #addCategoryEmptyBtn:active {
+        transform: translateY(0);
+    }
+
 /* 改善響應式設計 */
 @media (max-width: 768px) {
     .modal-content {
         width: 95%;
         margin: 10px;
         max-height: 95vh;
+    }
+    
+    #addCategoryBottomBtn,
+    #addCategoryEmptyBtn {
+        margin: 0 auto !important;
+        display: block !important;
+        width: 90%;
+        max-width: 300px;
     }
     
     .info-grid {
@@ -803,27 +839,4 @@ textarea.form-control {
 
     .autocomplete-dropdown > div:hover {
         background: #f5f5f5;
-    }
-    /* 底部新增類別按鈕樣式 */
-    #addCategoryBottomBtn,
-    #addCategoryEmptyBtn {
-        background: linear-gradient(135deg, var(--accent), #2980b9);
-        border: none;
-        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-        transition: all 0.3s ease;
-        margin: 0 auto;
-        display: block;
-        margin-bottom: 8px;
-    }
-
-    #addCategoryBottomBtn:hover,
-    #addCategoryEmptyBtn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-    }
-
-
-    #addCategoryBottomBtn:active,
-    #addCategoryEmptyBtn:active {
-        transform: translateY(0);
     }
