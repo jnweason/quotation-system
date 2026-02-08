@@ -1,6 +1,7 @@
 class QuotationSystem {
     constructor() {
         this.categories = [];
+        this.negotiatedPrices = [];
         this.currentIndustry = null;
         this.taxSettings = {
             type: 'included',
@@ -19,9 +20,6 @@ class QuotationSystem {
         this.init();
         this.draggedElement = null;
         this.draggedType = null; // 'category' 或 'item'
-        this.init();
-        this.draggedElement = null;
-        this.draggedType = null; // 'category' 或 'item'
     }
     generateUniqueId() {
         // 結合時間戳和隨機數確保唯一性
@@ -36,6 +34,8 @@ class QuotationSystem {
         this.loadHistoryRecords(); // 加載歷史記錄
         this.setupAutocomplete(); // 設置自動完成
         this.initCustomFields();
+        this.initNegotiatedPrices();
+        this.bindNegotiatedPriceEvents();
 
         
         
@@ -85,6 +85,302 @@ class QuotationSystem {
             }
         }
     }
+
+/**
+ * 初始化議價價格欄位
+ */
+initNegotiatedPrices() {
+    // 從 localStorage 載入議價價格
+    const savedPrices = localStorage.getItem('quotationNegotiatedPrices');
+    if (savedPrices) {
+        try {
+            this.negotiatedPrices = JSON.parse(savedPrices);
+        } catch (e) {
+            console.error('載入議價價格失敗:', e);
+            this.negotiatedPrices = [];
+        }
+    }
+    
+    this.renderNegotiatedPrices();
+    this.bindNegotiatedPriceEvents();
+}
+
+/**
+ * 儲存議價價格到 localStorage
+ */
+saveNegotiatedPrices() {
+    localStorage.setItem('quotationNegotiatedPrices', JSON.stringify(this.negotiatedPrices));
+}
+
+/**
+ * 渲染議價價格欄位
+ */
+renderNegotiatedPrices() {
+    const container = document.getElementById('negotiatedPriceContainer');
+    if (!container) return;
+    
+    // 只有在議價價格數量發生變化時才重新渲染整個區域
+    const currentChildrenCount = container.querySelectorAll('.negotiated-price-item').length;
+    if (currentChildrenCount !== this.negotiatedPrices.length) {
+        container.innerHTML = '';
+        
+        if (this.negotiatedPrices.length === 0) {
+            return;
+        }
+        
+        // 計算原始總金額
+        const originalTotal = this.calculateOriginalTotal();
+        
+        this.negotiatedPrices.forEach((priceItem, index) => {
+            const priceItemElement = document.createElement('div');
+            priceItemElement.className = 'negotiated-price-item';
+            priceItemElement.setAttribute('data-price-index', index);
+            
+            // 計算差價
+            const difference = priceItem.amount - originalTotal;
+            const differenceText = difference >= 0 ? 
+                `+${this.formatCurrency(Math.abs(difference))}` : 
+                `-${this.formatCurrency(Math.abs(difference))}`;
+            
+            priceItemElement.innerHTML = `
+                <input type="text" 
+                       class="negotiated-price-label" 
+                       value="${priceItem.label}" 
+                       data-price-index="${index}"
+                       placeholder="議價名稱"
+                       style="font-size: 0.8rem; color: #666; width: 80px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+                <span style="color: #999;">$</span>
+                <input type="number" 
+                       class="negotiated-price-input" 
+                       value="${priceItem.amount}" 
+                       data-price-index="${index}"
+                       placeholder="金額"
+                       style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                <div class="negotiated-price-display" style="min-width: 120px; text-align: right; font-size: 0.8rem; color: ${difference >= 0 ? '#e74c3c' : '#27ae60'};">
+                    差價: ${differenceText}
+                </div>
+                <button class="btn-remove-negotiated" 
+                        data-price-index="${index}" 
+                        style="background: #e74c3c; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(priceItemElement);
+        });
+        
+        // 綁定事件（只綁定一次）
+        this.bindNegotiatedPriceInputEventsOnce();
+    } else {
+        // 如果數量相同，只更新現有元素的值和顯示
+        this.updateExistingNegotiatedPriceElements();
+    }
+    
+    // 更新總計顯示
+    this.updateTotals();
+}
+
+/**
+ * 只綁定一次議價價格輸入事件
+ */
+bindNegotiatedPriceInputEventsOnce() {
+    const container = document.getElementById('negotiatedPriceContainer');
+    if (!container) return;
+    
+    // 為標籤輸入框綁定事件
+    container.querySelectorAll('.negotiated-price-label').forEach(input => {
+        // 使用標記避免重複綁定
+        if (!input.dataset.eventBound) {
+            input.dataset.eventBound = 'true';
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.priceIndex);
+                if (this.negotiatedPrices[index]) {
+                    this.negotiatedPrices[index].label = e.target.value;
+                    this.saveNegotiatedPrices();
+                    this.updateNegotiatedPriceDisplayOnly(index);
+                }
+            });
+        }
+    });
+    
+    // 為金額輸入框綁定事件
+    container.querySelectorAll('.negotiated-price-input').forEach(input => {
+        // 使用標記避免重複綁定
+        if (!input.dataset.eventBound) {
+            input.dataset.eventBound = 'true';
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.priceIndex);
+                if (this.negotiatedPrices[index]) {
+                    this.negotiatedPrices[index].amount = parseFloat(e.target.value) || 0;
+                    this.saveNegotiatedPrices();
+                    this.updateNegotiatedPriceDisplayOnly(index);
+                }
+            });
+        }
+    });
+    
+    // 為刪除按鈕綁定事件
+    container.querySelectorAll('.btn-remove-negotiated').forEach(btn => {
+        // 使用標記避免重複綁定
+        if (!btn.dataset.eventBound) {
+            btn.dataset.eventBound = 'true';
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.priceIndex);
+                this.removeNegotiatedPrice(index);
+            });
+        }
+    });
+}
+
+/**
+ * 只更新議價價格顯示（不重新渲染）
+ */
+updateNegotiatedPriceDisplayOnly(index) {
+    const container = document.getElementById('negotiatedPriceContainer');
+    if (!container) return;
+    
+    const priceItemElement = container.querySelector(`[data-price-index="${index}"]`);
+    if (!priceItemElement) return;
+    
+    const originalTotal = this.calculateOriginalTotal();
+    const priceItem = this.negotiatedPrices[index];
+    if (!priceItem) return;
+    
+    // 計算差價
+    const difference = priceItem.amount - originalTotal;
+    const differenceText = difference >= 0 ? 
+        `+${this.formatCurrency(Math.abs(difference))}` : 
+        `-${this.formatCurrency(Math.abs(difference))}`;
+    
+    const displayElement = priceItemElement.querySelector('.negotiated-price-display');
+    if (displayElement) {
+        displayElement.textContent = `差價: ${differenceText}`;
+        displayElement.style.color = difference >= 0 ? '#e74c3c' : '#27ae60';
+    }
+    
+    // 更新總計顯示
+    this.updateTotals();
+}
+
+/**
+ * 更新現有議價價格元素的值
+ */
+updateExistingNegotiatedPriceElements() {
+    const container = document.getElementById('negotiatedPriceContainer');
+    if (!container) return;
+    
+    this.negotiatedPrices.forEach((priceItem, index) => {
+        const priceItemElement = container.querySelector(`[data-price-index="${index}"]`);
+        if (priceItemElement) {
+            const labelInput = priceItemElement.querySelector('.negotiated-price-label');
+            const amountInput = priceItemElement.querySelector('.negotiated-price-input');
+            
+            if (labelInput) {
+                labelInput.value = priceItem.label;
+            }
+            if (amountInput) {
+                amountInput.value = priceItem.amount;
+            }
+        }
+    });
+}
+
+/**
+ * 新增議價價格欄位
+ */
+addNegotiatedPrice() {
+    const newPrice = {
+        id: this.generateUniqueId(),
+        label: '議價價格',
+        amount: this.calculateOriginalTotal()
+    };
+    
+    this.negotiatedPrices.push(newPrice);
+    this.saveNegotiatedPrices();
+    this.renderNegotiatedPrices();
+    
+    // 聚焦到新添加的輸入框
+    setTimeout(() => {
+        const container = document.getElementById('negotiatedPriceContainer');
+        if (container) {
+            const elements = container.querySelectorAll('.negotiated-price-item');
+            if (elements.length > 0) {
+                const lastElement = elements[elements.length - 1];
+                const labelInput = lastElement.querySelector('.negotiated-price-label');
+                if (labelInput) {
+                    labelInput.focus();
+                    labelInput.select();
+                }
+            }
+        }
+    }, 100);
+}
+
+/**
+ * 刪除議價價格欄位
+ */
+removeNegotiatedPrice(index) {
+    if (confirm('確定要刪除此議價價格欄位嗎？')) {
+        this.negotiatedPrices.splice(index, 1);
+        this.saveNegotiatedPrices();
+        this.renderNegotiatedPrices();
+    }
+}
+
+
+/**
+ * 計算原始總金額
+ */
+calculateOriginalTotal() {
+    const subtotal = Math.ceil(this.categories.reduce((sum, category) => sum + this.calculateCategoryTotal(category), 0));
+    const tax = Math.ceil(subtotal * (this.taxSettings.rate / 100));
+    
+    if (this.taxSettings.type === 'included') {
+        return Math.ceil(subtotal + tax);
+    } else {
+        return Math.ceil(subtotal);
+    }
+}
+
+/**
+ * 新增議價價格欄位
+ */
+addNegotiatedPrice() {
+    const newPrice = {
+        id: this.generateUniqueId(),
+        label: '議價價格',
+        amount: this.calculateOriginalTotal()
+    };
+    
+    this.negotiatedPrices.push(newPrice);
+    this.saveNegotiatedPrices();
+    this.renderNegotiatedPrices();
+    this.updateTotals(); // 更新總計顯示
+}
+
+/**
+ * 刪除議價價格欄位
+ */
+removeNegotiatedPrice(index) {
+    if (confirm('確定要刪除此議價價格欄位嗎？')) {
+        this.negotiatedPrices.splice(index, 1);
+        this.saveNegotiatedPrices();
+        this.renderNegotiatedPrices();
+        this.updateTotals(); // 更新總計顯示
+    }
+}
+
+/**
+ * 綁定議價價格事件
+ */
+bindNegotiatedPriceEvents() {
+    const addBtn = document.getElementById('addNegotiatedPriceBtn');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => this.addNegotiatedPrice());
+    }
+}
+
+
+
     /**
  * 初始化自定義欄位
  */
@@ -348,8 +644,204 @@ injectHeaderStyles() {
                 grid-template-columns: 1fr;
             }
         }
+
+        /* 圖片上傳樣式 */
+        .item-image-preview {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .item-image-preview img {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 4px;
+            border: 1px solid #eee;
+            object-fit: cover;
+        }
+        
+        .btn-remove-image {
+            margin-left: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+        
+        .btn-upload-image {
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .btn-upload-image:hover {
+            background: #2980b9;
+        }
     `;
     document.head.appendChild(style);
+}
+
+/**
+ * 綁定圖片上傳事件
+ */
+bindImageUploadEvents() {
+    // 綁定上傳圖片按鈕事件
+    document.querySelectorAll('.btn-upload-image').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const itemId = parseInt(e.currentTarget.dataset.itemId);
+            this.openImageUpload(itemId);
+        });
+    });
+    
+    // 綁定移除圖片按鈕事件
+    document.querySelectorAll('.btn-remove-image').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const itemId = parseInt(e.currentTarget.dataset.itemId);
+            this.removeItemImage(itemId);
+        });
+    });
+}
+
+/**
+ * 打開圖片上傳對話框
+ */
+openImageUpload(itemId) {
+    // 創建隱藏的文件輸入元素
+    let fileInput = document.querySelector(`.image-upload-input[data-item-id="${itemId}"]`);
+    if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.className = 'image-upload-input';
+        fileInput.setAttribute('data-item-id', itemId);
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+    }
+    
+    // 設置文件選擇事件處理
+    fileInput.onchange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            this.processImageFile(file, itemId);
+        }
+        // 清空選擇以允許重複選擇同一檔案
+        event.target.value = '';
+    };
+    
+    // 觸發文件選擇
+    fileInput.click();
+}
+
+/**
+ * 處理圖片文件
+ */
+processImageFile(file, itemId) {
+    // 檢查文件類型
+    if (!file.type.startsWith('image/')) {
+        alert('請選擇圖片文件');
+        return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+        try {
+            // 創建圖片元素來獲取原始尺寸
+            const img = new Image();
+            img.onload = () => {
+                // 調整圖片尺寸到300x300
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 300;
+                canvas.height = 300;
+                
+                // 計算縮放比例以保持圖片比例
+                const ratio = Math.min(300 / img.width, 300 / img.height);
+                const width = img.width * ratio;
+                const height = img.height * ratio;
+                const x = (300 - width) / 2;
+                const y = (300 - height) / 2;
+                
+                // 在畫布上繪製圖片
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 300, 300);
+                ctx.drawImage(img, x, y, width, height);
+                
+                // 轉換為數據URL
+                const resizedImageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // 保存圖片到項目
+                this.saveItemImage(itemId, resizedImageData);
+            };
+            img.src = e.target.result;
+        } catch (error) {
+            console.error('處理圖片失敗:', error);
+            alert('圖片處理失敗，請稍後再試');
+        }
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+/**
+ * 保存圖片到項目
+ */
+saveItemImage(itemId, imageData) {
+    // 找到對應的項目並保存圖片數據
+    let found = false;
+    for (const category of this.categories) {
+        for (const item of category.items) {
+            if (item.id === itemId) {
+                item.image = imageData;
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    
+    if (found) {
+        this.saveToStorage();
+        this.renderCategories();
+        this.updateTotals();
+        this.updateChart();
+        this.renderNegotiatedPrices();
+    }
+}
+
+/**
+ * 移除項目圖片
+ */
+removeItemImage(itemId) {
+    if (confirm('確定要移除這張圖片嗎？')) {
+        // 找到對應的項目並移除圖片數據
+        let found = false;
+        for (const category of this.categories) {
+            for (const item of category.items) {
+                if (item.id === itemId) {
+                    delete item.image;
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        
+        if (found) {
+            this.saveToStorage();
+            this.renderCategories();
+            this.updateTotals();
+            this.updateChart();
+        }
+    }
 }
     bindEvents() {
         // 行業選擇事件
@@ -359,6 +851,11 @@ injectHeaderStyles() {
                 this.selectIndustry(industry);
             });
         });
+          // 綁定新增議價價格按鈕事件
+        const addNegotiatedPriceBtn = document.getElementById('addNegotiatedPriceBtn');
+        if (addNegotiatedPriceBtn) {
+            addNegotiatedPriceBtn.addEventListener('click', () => this.addNegotiatedPrice());
+        }
 
         // 表單事件綁定
         document.getElementById('importBtn').addEventListener('click', () => this.importFromExcel());
@@ -462,7 +959,8 @@ injectHeaderStyles() {
                 // 為預設項目分配唯一ID
                 const defaultItemsWithIds = defaultItems[industryKey].map(item => ({
                     ...item,
-                    id: this.generateUniqueId()
+                    id: this.generateUniqueId(),
+                    image: null  // 添加圖片字段
                 }));
                 
                 // 如果第一個類別存在，將預設項目加入其中
@@ -558,27 +1056,46 @@ injectHeaderStyles() {
                 detailItem.setAttribute('data-item-id', item.id);
                 detailItem.setAttribute('data-category-id', category.id);
                 detailItem.setAttribute('data-index', itemIndex);
-                detailItem.innerHTML = `
-                    <div class="item-top">
-                        <div class="item-name">
-                            <span class="item-index">${itemIndex + 1}</span>${item.name}
-                        </div>
-                        <div style="display: flex; align-items: center;">
-                            <div class="item-subtotal">$${this.formatCurrency(item.quantity * item.price)}</div>
-                            <button class="btn-edit" data-category-id="${category.id}" data-item-id="${item.id}" title="編輯項目">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-delete" data-category-id="${category.id}" data-item-id="${item.id}" title="刪除項目">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="item-specs">
-                        <span class="spec-pill">數量: ${item.quantity} ${item.unit}</span>
-                        <span class="spec-pill">單價: $${this.formatCurrency(item.price)}</span>
-                    </div>
-                    ${item.remark ? `<div class="item-remark"><span class="remark-label">備註</span>${item.remark}</div>` : ''}
-                `;
+                // 建立圖片預覽區域
+let imagePreview = '';
+if (item.image) {
+    imagePreview = `
+        <div class="item-image-preview">
+            <img src="${item.image}" alt="項目圖片">
+            <button class="btn-remove-image" data-item-id="${item.id}">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+}
+
+detailItem.innerHTML = `
+    <div class="item-top">
+        <div class="item-name">
+            <span class="item-index">${itemIndex + 1}</span>${item.name}
+        </div>
+        <div style="display: flex; align-items: center;">
+            <div class="item-subtotal">$${this.formatCurrency(item.quantity * item.price)}</div>
+            <button class="btn-edit" data-category-id="${category.id}" data-item-id="${item.id}" title="編輯項目">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-delete" data-category-id="${category.id}" data-item-id="${item.id}" title="刪除項目">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <div class="item-specs">
+        <span class="spec-pill">數量: ${item.quantity} ${item.unit}</span>
+        <span class="spec-pill">單價: $${this.formatCurrency(item.price)}</span>
+    </div>
+    ${item.remark ? `<div class="item-remark"><span class="remark-label">備註</span>${item.remark}</div>` : ''}
+    <div style="margin-top: 10px;">
+        <button class="btn-upload-image" data-item-id="${item.id}">
+            <i class="fas fa-camera"></i> ${item.image ? '更換圖片' : '上傳圖片'}
+        </button>
+        ${imagePreview}
+    </div>
+`;
                 itemList.appendChild(detailItem);
             });
             
@@ -616,6 +1133,7 @@ injectHeaderStyles() {
         // 重新綁定所有事件
         this.bindDynamicEvents();
         this.bindDragEvents();
+        this.bindImageUploadEvents();
     }
 
 
@@ -883,38 +1401,48 @@ injectHeaderStyles() {
     calculateCategoryTotal(category) {
         return Math.ceil(category.items.reduce((sum, item) => sum + (item.quantity * item.price), 0));
     }
-
-    updateTotals() {
-        const subtotal = Math.ceil(this.categories.reduce((sum, category) => sum + this.calculateCategoryTotal(category), 0));
-        const tax = Math.ceil(subtotal * (this.taxSettings.rate / 100));
-        let total = 0;
-        let totalLabel = '';
-        
-        if (this.taxSettings.type === 'included') {
-            total = Math.ceil(subtotal + tax);  // 含稅模式下總額應包含稅額
-            totalLabel = '總報價金額 (含稅)';
-        } else {
-            total = Math.ceil(subtotal);
-            totalLabel = '總報價金額 (未稅)';
-        }
-        
-        document.querySelector('.total-final span:first-child').textContent = totalLabel;
-        
-        // 更新浮動操作按鈕顯示
-        const fabBarDiv = document.querySelector('.fab-bar > div:first-child');
-        if (fabBarDiv) {
-            const taxText = this.taxSettings.type === 'included' ? '總額(含稅)' : '總額(未稅)';
-            fabBarDiv.innerHTML = `
-                ${taxText}<br>
-                <div id="totalDisplay">$${this.formatCurrency(total)}</div>
-            `;
-        }
-        
-        document.getElementById('subtotal').textContent = '$' + this.formatCurrency(subtotal);
-        document.getElementById('taxAmount').textContent = '$' + this.formatCurrency(tax);
-        document.getElementById('totalAmount').textContent = '$' + this.formatCurrency(total);
-        document.getElementById('taxRateDisplay').textContent = this.taxSettings.rate;
+    
+updateTotals() {
+    const subtotal = Math.ceil(this.categories.reduce((sum, category) => sum + this.calculateCategoryTotal(category), 0));
+    const tax = Math.ceil(subtotal * (this.taxSettings.rate / 100));
+    let total = 0;
+    let totalLabel = '';
+    
+    if (this.taxSettings.type === 'included') {
+        total = Math.ceil(subtotal + tax);  // 含稅模式下總額應包含稅額
+        totalLabel = '總報價金額 (含稅)';
+    } else {
+        total = Math.ceil(subtotal);
+        totalLabel = '總報價金額 (未稅)';
     }
+    
+    // 總計區塊永遠顯示原始計算金額，不受到議價影響
+    document.querySelector('.total-final span:first-child').textContent = totalLabel;
+    
+    // 更新浮動操作按鈕顯示 - 這裡會根據議價金額改變
+    const fabBarDiv = document.querySelector('.fab-bar > div:first-child');
+    if (fabBarDiv) {
+        let displayTotal = total;
+        let finalDisplayText = this.taxSettings.type === 'included' ? '總額(含稅)' : '總額(未稅)';
+        
+        // 如果有議價價格，使用最後一個議價價格作為顯示金額
+        if (this.negotiatedPrices.length > 0) {
+            const lastNegotiatedPrice = this.negotiatedPrices[this.negotiatedPrices.length - 1].amount;
+            displayTotal = Math.ceil(lastNegotiatedPrice);
+            finalDisplayText = '議價後金額';
+        }
+        
+        fabBarDiv.innerHTML = `
+            ${finalDisplayText}<br>
+            <div id="totalDisplay">$${this.formatCurrency(displayTotal)}</div>
+        `;
+    }
+    
+    document.getElementById('subtotal').textContent = '$' + this.formatCurrency(subtotal);
+    document.getElementById('taxAmount').textContent = '$' + this.formatCurrency(tax);
+    document.getElementById('totalAmount').textContent = '$' + this.formatCurrency(total);
+    document.getElementById('taxRateDisplay').textContent = this.taxSettings.rate;
+}
 
     updateTaxSettings() {
         this.taxSettings.type = document.getElementById('taxType').value;
@@ -1018,7 +1546,8 @@ injectHeaderStyles() {
                         quantity: itemQuantity,
                         unit: itemUnit,
                         price: itemPrice,
-                        remark: itemRemark
+                        remark: itemRemark,
+                        image: category.items[itemIndex].image // 保留原有圖片
                     };
                 }
                 document.getElementById('saveItemBtn').textContent = '新增';
@@ -1031,7 +1560,8 @@ injectHeaderStyles() {
                     quantity: itemQuantity,
                     unit: itemUnit,
                     price: itemPrice,
-                    remark: itemRemark
+                    remark: itemRemark,
+                    image: null // 初始化圖片為 null
                 };
                 category.items.push(newItem);
             }
@@ -1669,30 +2199,31 @@ injectHeaderStyles() {
     input.parentNode.appendChild(dropdown);
 }
 
-    // 修改 saveToStorage 方法以支持更多數據
-    saveToStorage() {
-        // 儲存到localStorage
-        const data = {
-            categories: this.categories,
-            taxSettings: this.taxSettings,
-            customFields: this.customFields,
-            // 添加表單數據
-            formData: {
-                companyName: document.getElementById('companyName').value,
-                staffName: document.getElementById('staffName').value,
-                contactPhone: document.getElementById('contactPhone').value,
-                quoteDate: document.getElementById('quoteDate').value,
-                clientName: document.getElementById('clientName').value,
-                clientPhone: document.getElementById('clientPhone').value,
-                projectAddress: document.getElementById('projectAddress').value,
-                taxType: document.getElementById('taxType').value,
-                taxRate: document.getElementById('taxRate').value,
-                sectionTitle: document.getElementById('sectionTitle').value,
-                notesContent: document.getElementById('notesContent').value
-            }
-        };
-        localStorage.setItem('quotationData', JSON.stringify(data));
-    }
+// 修改 saveToStorage 方法以支持更多數據
+saveToStorage() {
+    // 儲存到localStorage
+    const data = {
+        categories: this.categories,
+        taxSettings: this.taxSettings,
+        customFields: this.customFields,
+        negotiatedPrices: this.negotiatedPrices,
+        // 添加表單數據
+        formData: {
+            companyName: document.getElementById('companyName').value,
+            staffName: document.getElementById('staffName').value,
+            contactPhone: document.getElementById('contactPhone').value,
+            quoteDate: document.getElementById('quoteDate').value,
+            clientName: document.getElementById('clientName').value,
+            clientPhone: document.getElementById('clientPhone').value,
+            projectAddress: document.getElementById('projectAddress').value,
+            taxType: document.getElementById('taxType').value,
+            taxRate: document.getElementById('taxRate').value,
+            sectionTitle: document.getElementById('sectionTitle').value,
+            notesContent: document.getElementById('notesContent').value
+        }
+    };
+    localStorage.setItem('quotationData', JSON.stringify(data));
+}
 
     // 修改 loadFromStorage 方法以恢復表單數據
     loadFromStorage() {
@@ -1702,6 +2233,15 @@ injectHeaderStyles() {
             try {
                 const data = JSON.parse(savedData);
                 this.categories = data.categories || [];
+                this.categories.forEach(category => {
+                if (category.items) {
+                    category.items.forEach(item => {
+                        if (item.image === undefined) {
+                            item.image = null;
+                        }
+                    });
+                }
+                 });
                 this.taxSettings = data.taxSettings || this.taxSettings;
                 
                 // 恢復表單數據
@@ -1724,6 +2264,8 @@ injectHeaderStyles() {
                 this.updateTotals();
                 this.updateChart();
                 this.renderCustomFields();
+                this.negotiatedPrices = data.negotiatedPrices || [];
+
             } catch (e) {
                 console.error('載入資料失敗:', e);
             }

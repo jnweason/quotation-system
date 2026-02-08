@@ -907,3 +907,44 @@ textarea.form-control {
         width: 100%;
     }
 }
+/* 議價價格欄位樣式 */
+.negotiated-price-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+}
+
+.negotiated-price-label {
+    font-size: 0.8rem;
+    color: #666;
+    min-width: 80px;
+}
+
+.negotiated-price-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.negotiated-price-display {
+    min-width: 120px;
+    text-align: right;
+    font-size: 0.9rem;
+}
+
+.btn-remove-negotiated {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
