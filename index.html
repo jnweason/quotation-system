@@ -30,9 +30,23 @@
     
     <title>企業報價單系統</title>
     <link rel="manifest" href="/quotation-system/manifest.json">
-    <link rel="stylesheet" href="/quotation-system/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+    // 動態載入 CSS
+    (function() {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        // 檢查是否在本地環境
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '') {
+            link.href = './css/style.css';
+        } else {
+            link.href = '/quotation-system/css/style.css';
+        }
+        document.head.appendChild(link);
+        })();
+    </script>
 </head>
 
 <body>
