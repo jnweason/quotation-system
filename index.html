@@ -150,6 +150,8 @@
                         <label for="projectAddress">客戶地址</label>
                         <input type="text" id="projectAddress" placeholder="請輸入客戶地址">
                     </div>
+
+                    <div id="customFieldsContainer" class="custom-fields-container" style="grid-column: span 2;"></div>
                     
                     <div class="info-item">
                         <label for="taxType">稅額計算</label>
@@ -174,8 +176,13 @@
                     <button class="btn btn-danger" id="resetBtn">
                         <i class="fas fa-trash-alt"></i> 清空報價單
                     </button>
+                    <!-- 新增欄位按鈕移到這裡 -->
+                    <button class="btn btn-secondary" id="addCustomFieldBtn">
+                        <i class="fas fa-plus"></i> 新增欄位
+                    </button>
                 </div>
             </div>
+
 
             <!-- 圖表分析區塊 -->
             <div class="card chart-section">

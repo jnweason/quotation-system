@@ -6,12 +6,19 @@ class QuotationSystem {
             type: 'included',
             rate: 5
         };
+
         // 新增歷史記錄屬性
         this.historyRecords = {
             companyNames: [],
             staffNames: [],
             contactPhones: []
         };
+        // 新增自定義欄位屬性
+        this.customFields = [];
+        
+        this.init();
+        this.draggedElement = null;
+        this.draggedType = null; // 'category' 或 'item'
         this.init();
         this.draggedElement = null;
         this.draggedType = null; // 'category' 或 'item'
@@ -28,6 +35,7 @@ class QuotationSystem {
         this.loadFromStorage();
         this.loadHistoryRecords(); // 加載歷史記錄
         this.setupAutocomplete(); // 設置自動完成
+        this.initCustomFields();
 
         
         
@@ -77,52 +85,272 @@ class QuotationSystem {
             }
         }
     }
-
-            /**
-         * 注入頁首輸入框所需樣式
-         */
-        injectHeaderStyles() {
-            const style = document.createElement('style');
-            style.textContent = `
-                .header-input {
-                    background: transparent;
-                    border: none;
-                    color: white;
-                    font-size: inherit;
-                    font-family: inherit;
-                    font-weight: inherit;
-                    padding: 5px 10px;
-                    margin: 0;
-                    outline: none;
-                    width: calc(100% - 60px);
-                    text-align: center;
-                    border-radius: 4px;
-                }
-                
-                .header-input:focus {
-                    background: rgba(255, 255, 255, 0.1);
-                    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
-                }
-                
-                .header h1 .header-input {
-                    font-size: 1.4rem;
-                    letter-spacing: 1px;
-                }
-                
-                .sub-title .header-input {
-                    font-size: 0.9rem;
-                    opacity: 0.9;
-                    margin-top: 5px;
-                }
-                
-                @media (max-width: 768px) {
-                    .header-input {
-                        width: calc(100% - 40px);
-                    }
-                }
-            `;
-            document.head.appendChild(style);
+    /**
+ * 初始化自定義欄位
+ */
+initCustomFields() {
+    // 從 localStorage 載入自定義欄位
+    const savedFields = localStorage.getItem('quotationCustomFields');
+    if (savedFields) {
+        try {
+            this.customFields = JSON.parse(savedFields);
+        } catch (e) {
+            console.error('載入自定義欄位失敗:', e);
+            this.customFields = [];
         }
+    }
+    
+    this.renderCustomFields();
+}
+
+/**
+ * 儲存自定義欄位到 localStorage
+ */
+saveCustomFields() {
+    localStorage.setItem('quotationCustomFields', JSON.stringify(this.customFields));
+}
+
+        /**
+ * 渲染自定義欄位
+ */
+renderCustomFields() {
+    const container = document.getElementById('customFieldsContainer');
+    if (!container) return;
+    
+    // 清空容器但保留新增按鈕
+    container.innerHTML = '';
+    
+    // 如果沒有自定義欄位，顯示提示文字
+    if (this.customFields.length === 0) {
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = `
+            text-align: center; 
+            padding: 10px; 
+            color: #999; 
+            font-size: 0.9rem;
+            grid-column: span 2;
+        `;
+        placeholder.textContent = '尚未新增自定義欄位';
+        container.appendChild(placeholder);
+        return;
+    }
+    
+    // 渲染每個自定義欄位
+    this.customFields.forEach((field, index) => {
+        const fieldElement = document.createElement('div');
+        fieldElement.className = 'info-item custom-field-item';
+        fieldElement.style.cssText = 'margin-bottom: 15px;';
+        fieldElement.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" 
+                       class="custom-field-label" 
+                       value="${field.label}" 
+                       data-field-index="${index}"
+                       placeholder="欄位名稱"
+                       style="font-size: 0.75rem; color: #95a5a6; width: 100px; padding: 4px; border: 1px solid #ddd; border-radius: 4px;">
+                <input type="text" 
+                       id="customField_${index}" 
+                       class="custom-field-input" 
+                       value="${field.value || ''}" 
+                       placeholder="${field.placeholder || '請輸入內容'}"
+                       data-field-index="${index}"
+                       style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                <button class="btn btn-danger remove-field-btn" 
+                        data-field-index="${index}" 
+                        style="padding: 4px 8px; min-width: auto; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(fieldElement);
+    });
+    
+    // 綁定標籤輸入事件
+    container.querySelectorAll('.custom-field-label').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const index = parseInt(e.target.dataset.fieldIndex);
+            this.customFields[index].label = e.target.value;
+            this.saveCustomFields();
+        });
+    });
+    
+    // 綁定輸入事件
+    container.querySelectorAll('.custom-field-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const index = parseInt(e.target.dataset.fieldIndex);
+            this.customFields[index].value = e.target.value;
+            this.saveCustomFields();
+        });
+    });
+    
+    // 綁定刪除按鈕事件
+    container.querySelectorAll('.remove-field-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const index = parseInt(e.target.closest('.remove-field-btn').dataset.fieldIndex);
+            this.removeCustomField(index);
+        });
+    });
+}
+
+  /**
+ * 新增自定義欄位
+ */
+addCustomField() {
+    const field = {
+        id: this.generateUniqueId(),
+        label: '新增欄位',
+        value: '',
+        placeholder: '請輸入內容'
+    };
+    
+    this.customFields.push(field);
+    this.saveCustomFields();
+    this.renderCustomFields();
+    
+    // 聚焦到新欄位的標籤輸入框
+    setTimeout(() => {
+        const newFieldIndex = this.customFields.length - 1;
+        const labelInput = document.querySelector(`.custom-field-label[data-field-index="${newFieldIndex}"]`);
+        if (labelInput) {
+            labelInput.focus();
+            labelInput.select();
+        }
+    }, 100);
+}
+
+        /**
+         * 刪除自定義欄位
+         */
+        removeCustomField(index) {
+            if (confirm('確定要刪除此欄位嗎？')) {
+                this.customFields.splice(index, 1);
+                this.saveCustomFields();
+                this.renderCustomFields();
+            }
+        }
+
+        /**
+         * 編輯自定義欄位標籤
+         */
+        editCustomFieldLabel(index, newLabel) {
+            if (this.customFields[index]) {
+                this.customFields[index].label = newLabel;
+                this.saveCustomFields();
+                this.renderCustomFields();
+            }
+        }
+
+
+          /**
+ * 注入頁首輸入框所需樣式
+ */
+injectHeaderStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .header-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: inherit;
+            font-family: inherit;
+            font-weight: inherit;
+            padding: 5px 10px;
+            margin: 0;
+            outline: none;
+            width: calc(100% - 60px);
+            text-align: center;
+            border-radius: 4px;
+        }
+        
+        .header-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+        }
+        
+        .header h1 .header-input {
+            font-size: 1.4rem;
+            letter-spacing: 1px;
+        }
+        
+        .sub-title .header-input {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .header-input {
+                width: calc(100% - 40px);
+            }
+        }
+        
+        /* 自定義欄位樣式 */
+        .custom-fields-container {
+            margin: 15px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .custom-field-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .custom-field-label {
+            font-size: 0.75rem !important;
+            color: #95a5a6 !important;
+            font-weight: 500;
+        }
+        
+        .custom-field-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .remove-field-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 30px;
+            height: 30px;
+        }
+        
+        #addCustomFieldBtn {
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 15px;
+        }
+        
+        #addCustomFieldBtn:hover {
+            background: #2980b9;
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .custom-fields-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
     bindEvents() {
         // 行業選擇事件
         document.querySelectorAll('.industry-btn').forEach(btn => {
@@ -178,6 +406,11 @@ class QuotationSystem {
                     }
                 });
             }
+        // 綁定新增自定義欄位按鈕事件
+        const addCustomFieldBtn = document.getElementById('addCustomFieldBtn');
+        if (addCustomFieldBtn) {
+            addCustomFieldBtn.addEventListener('click', () => this.addCustomField());
+        }
     
     }
 
@@ -1442,6 +1675,7 @@ class QuotationSystem {
         const data = {
             categories: this.categories,
             taxSettings: this.taxSettings,
+            customFields: this.customFields,
             // 添加表單數據
             formData: {
                 companyName: document.getElementById('companyName').value,
@@ -1489,6 +1723,7 @@ class QuotationSystem {
                 this.renderCategories();
                 this.updateTotals();
                 this.updateChart();
+                this.renderCustomFields();
             } catch (e) {
                 console.error('載入資料失敗:', e);
             }
