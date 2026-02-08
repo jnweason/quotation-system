@@ -1,8 +1,8 @@
 // 註冊Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        // 使用相對路徑註冊
-        navigator.serviceWorker.register('./sw.js')
+        // 使用絕對路徑註冊
+        navigator.serviceWorker.register('/quotation-system/sw.js')
             .then(registration => {
                 console.log('SW registered: ', registration);
             })
@@ -42,7 +42,7 @@ function showInstallButton() {
     installBtn.style.backgroundColor = '#3498db';
     installBtn.style.color = 'white';
     installBtn.style.border = 'none';
-    installBtn.style.borderRadius = '50px'; // 更圓潤的按鈕
+    installBtn.style.borderRadius = '50px';
     installBtn.style.cursor = 'pointer';
     installBtn.style.boxShadow = '0 4px 12px rgba(52, 152, 219, 0.3)';
     

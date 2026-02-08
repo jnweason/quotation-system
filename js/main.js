@@ -81,7 +81,6 @@ class QuotationSystem {
         });
 
         // 表單事件綁定
-        document.getElementById('addCategoryBtn').addEventListener('click', () => this.openCategoryModal());
         document.getElementById('importBtn').addEventListener('click', () => this.importFromExcel());
         document.getElementById('exportBtn').addEventListener('click', () => this.exportToExcel());
         document.getElementById('resetBtn').addEventListener('click', () => this.resetQuote());
@@ -151,6 +150,41 @@ class QuotationSystem {
         const container = document.getElementById('categoriesContainer');
         container.innerHTML = '';
         
+        // 如果沒有類別，顯示新增類別按鈕
+        if (this.categories.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.style.textAlign = 'center';
+            emptyState.style.padding = '40px 20px';
+            emptyState.style.backgroundColor = '#f8f9fa';
+            emptyState.style.borderRadius = '12px';
+            emptyState.style.marginBottom = '20px';
+            emptyState.style.border = '2px dashed #dee2e6';
+            emptyState.innerHTML = `
+                <div style="font-size: 1.2rem; color: #666; margin-bottom: 20px;">
+                    <i class="fas fa-folder-plus" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
+                    <div>目前還沒有類別項目</div>
+                </div>
+                <button class="btn btn-primary" id="addCategoryEmptyBtn" style="padding: 12px 24px; font-size: 1rem;">
+                    <i class="fas fa-plus-circle"></i> 新增第一個類別
+                </button>
+                <div style="font-size: 0.8rem; color: #999; margin-top: 10px;">
+                    點擊上方按鈕開始建立您的報價項目
+                </div>
+            `;
+            container.appendChild(emptyState);
+            
+            // 綁定事件
+            setTimeout(() => {
+                const addCategoryEmptyBtn = document.getElementById('addCategoryEmptyBtn');
+                if (addCategoryEmptyBtn) {
+                    addCategoryEmptyBtn.addEventListener('click', () => this.openCategoryModal());
+                }
+            }, 0);
+            
+            return;
+        }
+        
+        // 有類別時的處理
         this.categories.forEach((category, index) => {
             const details = document.createElement('details');
             details.open = true;
@@ -219,17 +253,35 @@ class QuotationSystem {
             container.appendChild(details);
         });
         
+        // 只在最後一個類別後面添加新增類別按鈕
+        if (this.categories.length > 0) {
+            const addCategorySection = document.createElement('div');
+            addCategorySection.style.textAlign = 'center';
+            addCategorySection.style.marginTop = '30px';
+            addCategorySection.style.marginBottom = '40px';
+            addCategorySection.innerHTML = `
+                <button class="btn btn-primary" id="addCategoryBottomBtn" style="padding: 12px 30px; font-size: 1rem; border-radius: 50px;">
+                    <i class="fas fa-plus-circle"></i> 新增類別
+                </button>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 8px;">
+                    點擊此處新增新的類別項目
+                </div>
+            `;
+            container.appendChild(addCategorySection);
+        }
+        
         // 重新綁定所有事件
         this.bindDynamicEvents();
         this.bindDragEvents();
     }
+
 
     // 格式化貨幣（無條件進位，不顯示小數點）
     formatCurrency(amount) {
         return Math.ceil(amount).toLocaleString();
     }
 
-    bindDynamicEvents() {
+        bindDynamicEvents() {
         // 綁定新增項目按鈕事件
         document.querySelectorAll('.add-item-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -274,7 +326,20 @@ class QuotationSystem {
                 });
             });
         });
+        
+        // 綁定底部新增類別按鈕事件
+        const addCategoryBottomBtn = document.getElementById('addCategoryBottomBtn');
+        if (addCategoryBottomBtn) {
+            addCategoryBottomBtn.addEventListener('click', () => this.openCategoryModal());
+        }
+        
+        // 綁定空狀態新增類別按鈕事件
+        const addCategoryEmptyBtn = document.getElementById('addCategoryEmptyBtn');
+        if (addCategoryEmptyBtn) {
+            addCategoryEmptyBtn.addEventListener('click', () => this.openCategoryModal());
+        }
     }
+
 
     bindDragEvents() {
         const container = document.getElementById('categoriesContainer');

@@ -1,12 +1,12 @@
 const CACHE_NAME = 'quotation-system-v1';
 const urlsToCache = [
-  './',
-  './index.html',
-  './css/style.css',
-  './js/main.js',
-  './js/industry-templates.js',
-  './js/pwa.js',
-  './manifest.json'
+  '/quotation-system/',
+  '/quotation-system/index.html',
+  '/quotation-system/css/style.css',
+  '/quotation-system/js/main.js',
+  '/quotation-system/js/industry-templates.js',
+  '/quotation-system/js/pwa.js',
+  '/quotation-system/manifest.json'
 ];
 
 // 安裝Service Worker
@@ -22,11 +22,14 @@ self.addEventListener('install', (event) => {
 
 // 擷取請求並回傳快取或網路資源
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // 回傳快取資源或從網路擷取
-        return response || fetch(event.request);
-      })
-  );
+  // 只處理同源請求且在 quotation-system 路徑下的資源
+  if (event.request.url.includes('/quotation-system/')) {
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          // 回傳快取資源或從網路擷取
+          return response || fetch(event.request);
+        })
+    );
+  }
 });
