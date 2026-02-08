@@ -4,12 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2c3e50">
+    <!-- PWA 相關設定 -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="企業報價單系統">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <title>企業報價單系統</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 </head>
+
 <body>
     <!-- 行業選擇介面 -->
     <div id="industry-selection" class="overlay">
@@ -262,10 +268,11 @@
         </div>
     </div>
 
+    <!-- 在 body 底部，修改腳本引入順序和路徑 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/industry-templates.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/pwa.js"></script>
+    <script src="./js/industry-templates.js"></script>
+    <script src="./js/main.js"></script>
+    <script src="./js/pwa.js"></script>
     <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" />
 </body>
 </html>

@@ -1,12 +1,12 @@
 const CACHE_NAME = 'quotation-system-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/main.js',
-  '/js/industry-templates.js',
-  '/js/pwa.js',
-  '/manifest.json'
+  './',
+  './index.html',
+  './css/style.css',
+  './js/main.js',
+  './js/industry-templates.js',
+  './js/pwa.js',
+  './manifest.json'
 ];
 
 // 安裝Service Worker
