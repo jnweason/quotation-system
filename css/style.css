@@ -41,6 +41,7 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    -webkit-overflow-scrolling: touch;
 }
 
 .selection-container {
@@ -51,6 +52,9 @@ body {
     max-width: 600px;
     text-align: center;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    margin: auto;
 }
 
 .selection-container h2 {
@@ -107,6 +111,7 @@ body {
     grid-template-columns: 1fr 2fr;
     gap: 30px;
     margin-top: 20px;
+    align-items: start;
 }
 
 .company-info-section {
@@ -724,34 +729,6 @@ textarea.form-control {
     background: #2980b9;
 }
 
-    /* 底部新增類別按鈕樣式 - 置中顯示 */
-    #addCategoryBottomBtn,
-    #addCategoryEmptyBtn {
-        background: linear-gradient(135deg, var(--accent), #2980b9);
-        border: none;
-        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-        transition: all 0.3s ease;
-        margin: 0 auto !important;
-        display: block !important;
-        padding: 12px 30px;
-        font-size: 1rem;
-        border-radius: 50px;
-        color: white;
-        cursor: pointer;
-        font-weight: bold;
-    }
-
-    #addCategoryBottomBtn:hover,
-    #addCategoryEmptyBtn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
-    }
-
-    #addCategoryBottomBtn:active,
-    #addCategoryEmptyBtn:active {
-        transform: translateY(0);
-    }
-
 /* 改善響應式設計 */
 @media (max-width: 768px) {
     .modal-content {
@@ -766,6 +743,22 @@ textarea.form-control {
         display: block !important;
         width: 90%;
         max-width: 300px;
+    }
+    
+    .selection-container {
+        padding: 20px;
+        width: 95%;
+        margin: 10px;
+    }
+    
+    .industry-info-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .company-info-section,
+    .industry-selection-section {
+        width: 100%;
     }
     
     .info-grid {
@@ -809,34 +802,108 @@ textarea.form-control {
         height: 150px;
     }
     
-    .industry-info-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-    
     .company-info-section {
         padding: 15px;
     }
 }
-    /* 修改暫存訊息 */
-    .autocomplete-dropdown {
-        position: absolute;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        z-index: 1000;
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .selection-container {
+        width: 85%;
+        max-width: 700px;
+    }
+}
+
+@media (min-width: 1025px) {
+    .selection-container {
+        width: 70%;
+        max-width: 800px;
+    }
+}
+
+/* 修改暫存訊息 */
+.autocomplete-dropdown {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.autocomplete-dropdown > div {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.autocomplete-dropdown > div:hover {
+    background: #f5f5f5;
+}
+
+/* iOS 安全區域支援 */
+@supports(padding: max(0px)) {
+    .selection-container {
+        padding-left: max(30px, env(safe-area-inset-left));
+        padding-right: max(30px, env(safe-area-inset-right));
+    }
+}
+
+@media screen and (max-width: 768px) {
+    @supports(padding: max(0px)) {
+        .selection-container {
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
+        }
+    }
+}
+
+/* 修正新增類別按鈕在大螢幕上的置中問題 */
+.text-center {
+    text-align: center !important;
+}
+
+.mt-30 {
+    margin-top: 30px !important;
+}
+
+.mb-40 {
+    margin-bottom: 40px !important;
+}
+
+.btn-container {
+    text-align: center;
+    width: 100%;
+}
+
+.btn-container .btn {
+    margin: 0 auto !important;
+    display: block !important;
+    width: fit-content;
+    min-width: 200px;
+}
+
+/* 大螢幕優化 */
+@media (min-width: 1025px) {
+    .btn-container .btn {
+        margin: 0 auto !important;
+        display: block !important;
+        width: fit-content;
+        min-width: 200px;
+    }
+    
+    .empty-state-button-wrapper {
+        display: flex;
+        justify-content: center;
         width: 100%;
-        max-height: 200px;
-        overflow-y: auto;
     }
-
-    .autocomplete-dropdown > div {
-        padding: 10px;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
+    
+    .category-button-wrapper {
+        display: flex;
+        justify-content: center;
+        width: 100%;
     }
-
-    .autocomplete-dropdown > div:hover {
-        background: #f5f5f5;
-    }
+}

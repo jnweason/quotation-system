@@ -16,13 +16,20 @@ class QuotationSystem {
         this.draggedElement = null;
         this.draggedType = null; // 'category' 或 'item'
     }
+    generateUniqueId() {
+        // 結合時間戳和隨機數確保唯一性
+        return Date.now() + Math.floor(Math.random() * 100000);
+    }
 
     init() {
+        this.injectHeaderStyles();
         this.bindEvents();
         this.setupDate();
         this.loadFromStorage();
         this.loadHistoryRecords(); // 加載歷史記錄
         this.setupAutocomplete(); // 設置自動完成
+
+        
         
         // 添加 Enter 鍵提交功能
         const inputs = document.querySelectorAll('#selectionCompanyName, #selectionStaffName, #selectionContactPhone');
@@ -71,6 +78,51 @@ class QuotationSystem {
         }
     }
 
+            /**
+         * 注入頁首輸入框所需樣式
+         */
+        injectHeaderStyles() {
+            const style = document.createElement('style');
+            style.textContent = `
+                .header-input {
+                    background: transparent;
+                    border: none;
+                    color: white;
+                    font-size: inherit;
+                    font-family: inherit;
+                    font-weight: inherit;
+                    padding: 5px 10px;
+                    margin: 0;
+                    outline: none;
+                    width: calc(100% - 60px);
+                    text-align: center;
+                    border-radius: 4px;
+                }
+                
+                .header-input:focus {
+                    background: rgba(255, 255, 255, 0.1);
+                    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+                }
+                
+                .header h1 .header-input {
+                    font-size: 1.4rem;
+                    letter-spacing: 1px;
+                }
+                
+                .sub-title .header-input {
+                    font-size: 0.9rem;
+                    opacity: 0.9;
+                    margin-top: 5px;
+                }
+                
+                @media (max-width: 768px) {
+                    .header-input {
+                        width: calc(100% - 40px);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
     bindEvents() {
         // 行業選擇事件
         document.querySelectorAll('.industry-btn').forEach(btn => {
@@ -101,6 +153,32 @@ class QuotationSystem {
         document.getElementById('saveItemBtn').addEventListener('click', () => this.saveItem());
         document.getElementById('cancelItemBtn').addEventListener('click', () => this.closeItemModal());
         document.getElementById('addUnitBtn').addEventListener('click', () => this.addNewUnit());
+        
+        // 綁定標題輸入框事件
+            const mainTitleInput = document.getElementById('mainTitle');
+            const subTitleInput = document.getElementById('subTitle');
+            
+            if (mainTitleInput) {
+                mainTitleInput.addEventListener('input', () => {
+                // 即時更新預覽
+                document.title = mainTitleInput.value + " - 報價單系統";
+            });
+                mainTitleInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        mainTitleInput.blur();
+                    }
+                });
+            }
+            
+            if (subTitleInput) {
+                subTitleInput.addEventListener('blur', () => this.saveHeaderSettings());
+                subTitleInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        subTitleInput.blur();
+                    }
+                });
+            }
+    
     }
 
     setupDate() {
@@ -109,6 +187,7 @@ class QuotationSystem {
     }
 
     selectIndustry(industryKey) {
+        this.hideAllAutocompleteDropdowns();
         const companyName = document.getElementById('selectionCompanyName').value.trim();
         const staffName = document.getElementById('selectionStaffName').value.trim();
         const contactPhone = document.getElementById('selectionContactPhone').value.trim();
@@ -127,11 +206,36 @@ class QuotationSystem {
         const template = industryTemplates[industryKey];
 
         if (template) {
-            this.categories = JSON.parse(JSON.stringify(template.categories));
+            // 深拷貝模板並為所有類別和項目分配唯一ID
+            this.categories = JSON.parse(JSON.stringify(template.categories)).map((category) => {
+                // 為類別分配唯一ID
+                const categoryId = this.generateUniqueId();
+                
+                // 為類別中的每個項目分配唯一ID
+                const itemsWithIds = category.items.map(item => ({
+                    ...item,
+                    id: this.generateUniqueId()
+                }));
+                
+                return {
+                    ...category,
+                    id: categoryId,
+                    items: itemsWithIds
+                };
+            });
             
-            // 加入預設項目（如果有的話）
+            // 加入預設項目（如果有的話），並確保項目有唯一ID
             if (defaultItems[industryKey]) {
-                this.categories[0].items = [...defaultItems[industryKey]];
+                // 為預設項目分配唯一ID
+                const defaultItemsWithIds = defaultItems[industryKey].map(item => ({
+                    ...item,
+                    id: this.generateUniqueId()
+                }));
+                
+                // 如果第一個類別存在，將預設項目加入其中
+                if (this.categories.length > 0) {
+                    this.categories[0].items = [...defaultItemsWithIds];
+                }
             }
 
             document.getElementById('industry-selection').classList.add('hidden');
@@ -150,38 +254,31 @@ class QuotationSystem {
         const container = document.getElementById('categoriesContainer');
         container.innerHTML = '';
         
-    // 如果沒有類別，顯示新增類別按鈕
-    if (this.categories.length === 0) {
-        const emptyState = document.createElement('div');
-        emptyState.style.textAlign = 'center';
-        emptyState.style.padding = '40px 20px';
-        emptyState.style.backgroundColor = '#f8f9fa';
-        emptyState.style.borderRadius = '12px';
-        emptyState.style.marginBottom = '20px';
-        emptyState.style.border = '2px dashed #dee2e6';
-        emptyState.innerHTML = `
-            <div style="font-size: 1.2rem; color: #666; margin-bottom: 20px;">
-                <i class="fas fa-folder-plus" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
-                <div>目前還沒有類別項目</div>
-            </div>
-            <button class="btn btn-primary" id="addCategoryEmptyBtn">
-                <i class="fas fa-plus-circle"></i> 新增第一個類別
-            </button>
-            <div style="font-size: 0.8rem; color: #999; margin-top: 10px;">
-                點擊上方按鈕開始建立您的報價項目
-            </div>
-        `;
-
-        // 在底部按鈕部分，將按鈕 HTML 改為：
-        addCategorySection.innerHTML = `
-            <button class="btn btn-primary" id="addCategoryBottomBtn">
-                <i class="fas fa-plus-circle"></i> 新增類別
-            </button>
-            <div style="font-size: 0.8rem; color: #666; margin-top: 8px; text-align: center;">
-                點擊此處新增新的類別項目
-            </div>
-        `;
-        container.appendChild(emptyState);
+        // 如果沒有類別，顯示新增類別按鈕
+        if (this.categories.length === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'card empty-state';
+            emptyState.style.textAlign = 'center';
+            emptyState.style.padding = '40px 20px';
+            emptyState.style.backgroundColor = '#f8f9fa';
+            emptyState.style.borderRadius = '12px';
+            emptyState.style.marginBottom = '20px';
+            emptyState.style.border = '2px dashed #dee2e6';
+            emptyState.innerHTML = `
+                <div style="font-size: 1.2rem; color: #666; margin-bottom: 20px;">
+                    <i class="fas fa-folder-plus" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
+                    <div>目前還沒有類別項目</div>
+                </div>
+                <div class="empty-state-button-wrapper">
+                    <button class="btn btn-primary" id="addCategoryEmptyBtn" style="margin: 0 auto; display: block; width: fit-content; min-width: 200px;">
+                        <i class="fas fa-plus-circle"></i> 新增第一個類別
+                    </button>
+                </div>
+                <div style="font-size: 0.8rem; color: #999; margin-top: 10px;">
+                    點擊上方按鈕開始建立您的報價項目
+                </div>
+            `;
+            container.appendChild(emptyState);
             
             // 綁定事件
             setTimeout(() => {
@@ -266,14 +363,17 @@ class QuotationSystem {
         // 只在最後一個類別後面添加新增類別按鈕
         if (this.categories.length > 0) {
             const addCategorySection = document.createElement('div');
-            addCategorySection.style.textAlign = 'center';  // 這行保持不變
+            addCategorySection.className = 'text-center mt-30 mb-40';
+            addCategorySection.style.textAlign = 'center';
             addCategorySection.style.marginTop = '30px';
             addCategorySection.style.marginBottom = '40px';
             addCategorySection.innerHTML = `
-                <button class="btn btn-primary" id="addCategoryBottomBtn" style="padding: 12px 30px; font-size: 1rem; border-radius: 50px; margin: 0 auto; display: block;">
-                    <i class="fas fa-plus-circle"></i> 新增類別
-                </button>
-                <div style="font-size: 0.8rem; color: #666; margin-top: 8px; text-align: center;">
+                <div class="category-button-wrapper">
+                    <button class="btn btn-primary" id="addCategoryBottomBtn" style="margin: 0 auto; display: block; width: fit-content; min-width: 200px;">
+                        <i class="fas fa-plus-circle"></i> 新增類別
+                    </button>
+                </div>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 8px;">
                     點擊此處新增新的類別項目
                 </div>
             `;
@@ -291,7 +391,7 @@ class QuotationSystem {
         return Math.ceil(amount).toLocaleString();
     }
 
-        bindDynamicEvents() {
+    bindDynamicEvents() {
         // 綁定新增項目按鈕事件
         document.querySelectorAll('.add-item-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -605,8 +705,11 @@ class QuotationSystem {
             return;
         }
         
+        // 確保ID唯一性
+        const newId = this.generateUniqueId();
+        
         const newCategory = {
-            id: Date.now(),
+            id: newId,
             name: categoryName,
             items: []
         };
@@ -836,8 +939,17 @@ class QuotationSystem {
             '#FEE440', '#9B5DE5', '#F15BB5', '#00BBF9',
             '#00F5D4', '#FEE440', '#9B5DE5', '#F15BB5',
             '#00BBF0', '#00F5D0', '#FEE444', '#9B5DE0'
-        ];
-        return colors[id % colors.length];
+            ];
+            // 使用 ID 的哈希值而不是簡單的模運算來獲得更好的分佈
+        let hash = 0;
+        const str = id.toString();
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+        }
+        // 確保哈希值為正數
+        hash = Math.abs(hash);
+        
+        return colors[hash % colors.length];
     }
 
     addNewUnit() {
@@ -974,7 +1086,7 @@ class QuotationSystem {
                     
                     // 添加項目
                     const newItem = {
-                        id: Date.now() + Object.keys(categoryMap).length * 1000 + category.items.length,
+                        id: this.generateUniqueId(), 
                         name: itemName,
                         quantity: quantity,
                         unit: unit,
@@ -1115,6 +1227,45 @@ class QuotationSystem {
             saveBtn.textContent = originalText;
         }, 2000);
     }
+            /**
+         * 保存頁首設定到 localStorage
+         */
+        saveHeaderSettings() {
+            const mainTitle = document.getElementById('mainTitle');
+            const subTitle = document.getElementById('subTitle');
+            
+            if (mainTitle && subTitle) {
+                const headerSettings = {
+                    mainTitle: mainTitle.value,
+                    subTitle: subTitle.value
+                };
+                localStorage.setItem('quotationHeaderSettings', JSON.stringify(headerSettings));
+            }
+        }
+
+        /**
+         * 從 localStorage 載入頁首設定
+         */
+        loadHeaderSettings() {
+            const savedSettings = localStorage.getItem('quotationHeaderSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    const mainTitle = document.getElementById('mainTitle');
+                    const subTitle = document.getElementById('subTitle');
+                    
+                    if (mainTitle && settings.mainTitle) {
+                        mainTitle.value = settings.mainTitle;
+                    }
+                    
+                    if (subTitle && settings.subTitle) {
+                        subTitle.value = settings.subTitle;
+                    }
+                } catch (e) {
+                    console.error('載入頁首設定失敗:', e);
+                }
+            }
+        }
 
     // 修改後的 saveQuote 方法（實現暫存功能）
     saveQuote() {
@@ -1203,86 +1354,87 @@ class QuotationSystem {
         this.createAutocomplete(staffNameInput, 'staffNames');
         this.createAutocomplete(contactPhoneInput, 'contactPhones');
     }
-
-    createAutocomplete(input, fieldName) {
-        let dropdown;
-        
-        input.addEventListener('focus', () => {
-            this.showSuggestions(input, fieldName);
-        });
-        
-        input.addEventListener('input', () => {
-            this.showSuggestions(input, fieldName);
-        });
-        
-        // 點擊其他地方隱藏下拉列表
-        document.addEventListener('click', (e) => {
-            if (dropdown && !input.contains(e.target) && !dropdown.contains(e.target)) {
-                if (dropdown.parentNode) {
-                    dropdown.parentNode.removeChild(dropdown);
+            /**
+         * 隱藏所有自動完成下拉選單
+         */
+        hideAllAutocompleteDropdowns() {
+            document.querySelectorAll('.autocomplete-dropdown').forEach(el => {
+                if (el.parentNode) {
+                    // 添加淡出效果
+                    el.style.transition = 'opacity 0.2s ease';
+                    el.style.opacity = '0';
+                    
+                    // 延遲移除元素以實現淡出效果
+                    setTimeout(() => {
+                        if (el.parentNode) {
+                            el.parentNode.removeChild(el);
+                        }
+                    }, 200);
                 }
-            }
-        });
-    }
+            });
+        }
 
     showSuggestions(input, fieldName) {
-        // 移除現有的下拉列表
-        const existingDropdown = input.parentNode.querySelector('.autocomplete-dropdown');
-        if (existingDropdown) {
-            existingDropdown.parentNode.removeChild(existingDropdown);
-        }
-        
-        const value = input.value.toLowerCase();
-        const suggestions = this.historyRecords[fieldName].filter(item => 
-            item.toLowerCase().includes(value)
-        ).slice(0, 5); // 最多顯示5個建議
-        
-        if (suggestions.length > 0 && value) {
-            const dropdown = document.createElement('div');
-            dropdown.className = 'autocomplete-dropdown';
-            dropdown.style.cssText = `
-                position: absolute;
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                z-index: 1000;
-                width: 100%;
-                max-height: 200px;
-                overflow-y: auto;
-            `;
-            
-            suggestions.forEach(suggestion => {
-                const item = document.createElement('div');
-                item.textContent = suggestion;
-                item.style.cssText = `
-                    padding: 10px;
-                    cursor: pointer;
-                    border-bottom: 1px solid #eee;
-                `;
-                
-                item.addEventListener('click', () => {
-                    input.value = suggestion;
-                    dropdown.parentNode.removeChild(dropdown);
-                    input.focus();
-                });
-                
-                item.addEventListener('mouseenter', () => {
-                    item.style.backgroundColor = '#f5f5f5';
-                });
-                
-                item.addEventListener('mouseleave', () => {
-                    item.style.backgroundColor = 'white';
-                });
-                
-                dropdown.appendChild(item);
-            });
-            
-            // 插入到輸入框後面
-            input.parentNode.style.position = 'relative';
-            input.parentNode.appendChild(dropdown);
-        }
+    // 移除現有的下拉列表
+    const existingDropdown = input.parentNode.querySelector('.autocomplete-dropdown');
+    if (existingDropdown) {
+        existingDropdown.parentNode.removeChild(existingDropdown);
     }
+    
+    const value = input.value.toLowerCase();
+    const suggestions = this.historyRecords[fieldName].filter(item => 
+        item.toLowerCase().includes(value)
+    ).slice(0, 5); // 最多顯示5個建議
+    
+    // 如果沒有輸入內容或沒有匹配的建議，不顯示下拉選單
+    if (!value || suggestions.length === 0) {
+        return;
+    }
+    
+    const dropdown = document.createElement('div');
+    dropdown.className = 'autocomplete-dropdown';
+    dropdown.style.cssText = `
+        position: absolute;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        z-index: 1000;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+    `;
+    
+    suggestions.forEach(suggestion => {
+        const item = document.createElement('div');
+        item.textContent = suggestion;
+        item.style.cssText = `
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        `;
+        
+        item.addEventListener('click', () => {
+            input.value = suggestion;
+            this.hideAllAutocompleteDropdowns();
+            input.focus();
+        });
+        
+        item.addEventListener('mouseenter', () => {
+            item.style.backgroundColor = '#f5f5f5';
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            item.style.backgroundColor = 'white';
+        });
+        
+        dropdown.appendChild(item);
+    });
+    
+    // 插入到輸入框後面
+    input.parentNode.style.position = 'relative';
+    input.parentNode.appendChild(dropdown);
+}
 
     // 修改 saveToStorage 方法以支持更多數據
     saveToStorage() {
@@ -1353,6 +1505,8 @@ class QuotationSystem {
         
         // 載入歷史記錄
         this.loadHistoryRecords();
+        // 載入頁首設定
+         this.loadHeaderSettings();
     }
 }
 

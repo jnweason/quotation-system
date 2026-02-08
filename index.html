@@ -50,12 +50,12 @@
 </head>
 
 <body>
-    <!-- 行業選擇介面 -->
-    <div id="industry-selection" class="overlay">
-        <div class="selection-container">
-            <h2>選擇您的行業</h2>
-            <div class="industry-grid">
-                <div class="company-info-section">
+<!-- 行業選擇介面 -->
+<div id="industry-selection" class="overlay">
+    <div class="selection-container">
+        <h2>選擇您的行業</h2>
+        <div class="industry-info-grid">
+            <div class="company-info-section">
                 <h3>請輸入基本資訊</h3>
                 <div class="info-item">
                     <label for="selectionCompanyName">公司名稱 *</label>
@@ -70,35 +70,35 @@
                     <input type="text" id="selectionContactPhone" placeholder="請輸入聯絡電話" required>
                 </div>
             </div>
-        <div class="industry-selection-section">
-            <h3>選擇行業</h3>
-            <div class="industry-grid">
-                <button class="industry-btn" data-industry="engineering">
-                    <i class="fas fa-hard-hat"></i>
-                    <span>工程</span>
-                </button>
-                <button class="industry-btn" data-industry="catering">
-                    <i class="fas fa-utensils"></i>
-                    <span>餐飲</span>
-                </button>
-                <button class="industry-btn" data-industry="beauty">
-                    <i class="fas fa-spa"></i>
-                    <span>美業</span>
-                </button>
-                <button class="industry-btn" data-industry="marketing">
-                    <i class="fas fa-bullhorn"></i>
-                    <span>行銷</span>
-                </button>
-                <button class="industry-btn" data-industry="sales">
-                    <i class="fas fa-handshake"></i>
-                    <span>業務</span>
-                </button>
-                <button class="industry-btn" data-industry="financial">
-                    <i class="fas fa-chart-line"></i>
-                    <span>理專</span>
-                </button>
-                <button class="industry-btn" data-industry="custom">
-                    <i class="fas fa-edit"></i>
+            <div class="industry-selection-section">
+                <h3>選擇行業</h3>
+                <div class="industry-grid">
+                    <button class="industry-btn" data-industry="engineering">
+                        <i class="fas fa-hard-hat"></i>
+                        <span>工程</span>
+                    </button>
+                    <button class="industry-btn" data-industry="catering">
+                        <i class="fas fa-utensils"></i>
+                        <span>餐飲</span>
+                    </button>
+                    <button class="industry-btn" data-industry="beauty">
+                        <i class="fas fa-spa"></i>
+                        <span>美業</span>
+                    </button>
+                    <button class="industry-btn" data-industry="marketing">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>行銷</span>
+                    </button>
+                    <button class="industry-btn" data-industry="sales">
+                        <i class="fas fa-handshake"></i>
+                        <span>業務</span>
+                    </button>
+                    <button class="industry-btn" data-industry="financial">
+                        <i class="fas fa-chart-line"></i>
+                        <span>理專</span>
+                    </button>
+                    <button class="industry-btn" data-industry="custom">
+                        <i class="fas fa-edit"></i>
                         <span>自訂</span>
                     </button>
                 </div>
@@ -109,8 +109,12 @@
     <!-- 主報價單介面 -->
     <div id="quotation-app" class="hidden">
         <header class="header">
-            <h1><i class="fas fa-file-invoice-dollar"></i> 企業報價單系統</h1>
-            <div class="sub-title">跨行業適用 • 可編輯 • 支援匯出</div>
+            <h1><i class="fas fa-file-invoice-dollar"></i> 
+                <input type="text" id="mainTitle" class="header-input" value="企業報價單系統">
+            </h1>
+            <div class="sub-title">
+                <input type="text" id="subTitle" class="header-input" value="跨行業適用 • 可編輯 • 支援匯出">
+            </div>
         </header>
 
         <div class="container">
