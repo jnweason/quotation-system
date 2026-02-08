@@ -805,18 +805,25 @@ textarea.form-control {
         background: #f5f5f5;
     }
     /* 底部新增類別按鈕樣式 */
-    #addCategoryBottomBtn {
+    #addCategoryBottomBtn,
+    #addCategoryEmptyBtn {
         background: linear-gradient(135deg, var(--accent), #2980b9);
         border: none;
         box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
         transition: all 0.3s ease;
+        margin: 0 auto;
+        display: block;
+        margin-bottom: 8px;
     }
 
-    #addCategoryBottomBtn:hover {
+    #addCategoryBottomBtn:hover,
+    #addCategoryEmptyBtn:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
     }
 
-    #addCategoryBottomBtn:active {
+
+    #addCategoryBottomBtn:active,
+    #addCategoryEmptyBtn:active {
         transform: translateY(0);
     }

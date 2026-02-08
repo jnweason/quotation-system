@@ -164,7 +164,7 @@ class QuotationSystem {
                     <i class="fas fa-folder-plus" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
                     <div>目前還沒有類別項目</div>
                 </div>
-                <button class="btn btn-primary" id="addCategoryEmptyBtn" style="padding: 12px 24px; font-size: 1rem;">
+                <button class="btn btn-primary" id="addCategoryEmptyBtn" style="padding: 12px 24px; font-size: 1rem; margin: 0 auto; display: block;">
                     <i class="fas fa-plus-circle"></i> 新增第一個類別
                 </button>
                 <div style="font-size: 0.8rem; color: #999; margin-top: 10px;">
@@ -256,14 +256,14 @@ class QuotationSystem {
         // 只在最後一個類別後面添加新增類別按鈕
         if (this.categories.length > 0) {
             const addCategorySection = document.createElement('div');
-            addCategorySection.style.textAlign = 'center';
+            addCategorySection.style.textAlign = 'center';  // 這行保持不變
             addCategorySection.style.marginTop = '30px';
             addCategorySection.style.marginBottom = '40px';
             addCategorySection.innerHTML = `
-                <button class="btn btn-primary" id="addCategoryBottomBtn" style="padding: 12px 30px; font-size: 1rem; border-radius: 50px;">
+                <button class="btn btn-primary" id="addCategoryBottomBtn" style="padding: 12px 30px; font-size: 1rem; border-radius: 50px; margin: 0 auto; display: block;">
                     <i class="fas fa-plus-circle"></i> 新增類別
                 </button>
-                <div style="font-size: 0.8rem; color: #666; margin-top: 8px;">
+                <div style="font-size: 0.8rem; color: #666; margin-top: 8px; text-align: center;">
                     點擊此處新增新的類別項目
                 </div>
             `;
